@@ -39,13 +39,23 @@ nvm use 24
 
 ---
 
-## 第 2 步：进入项目目录
+## 第 2 步：克隆项目代码并进入目录
+
+把仓库克隆到本地，然后进入项目文件夹：
 
 ```bash
-cd /你的路径/Job-Seeker
+# 方式一：HTTPS（最常用，推荐）
+git clone https://github.com/WessonZZ/Job-Seeker.git
+cd Job-Seeker
+
+# 方式二：SSH（HTTPS 连不上 GitHub 时用，需先配置好 SSH key）
+# git clone git@github.com:WessonZZ/Job-Seeker.git
+# cd Job-Seeker
 ```
 
-（如果你还没拿到项目代码，先把它拷贝/克隆到这个目录。）
+> 💡 如果你已经把代码下载到本地了（比如压缩包解压），直接 `cd` 进项目目录即可，跳过克隆。
+>
+> 💡 确认你在正确的目录里：执行 `ls` 应该能看到 `package.json`、`src/`、`electron/` 这些文件。
 
 ---
 
