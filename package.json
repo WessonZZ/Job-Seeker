@@ -1,0 +1,54 @@
+{
+  "name": "job-seeker",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "icon": "python3 scripts/generate_icon.py",
+    "app": "env -u ELECTRON_RUN_AS_NODE electron .",
+    "app:bg": "nohup env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron . > /tmp/jobseeker-app.log 2>&1 & echo '求职助手已后台启动（日志 /tmp/jobseeker-app.log，点 Dock 图标重新打开窗口，Cmd+Q 退出）'",
+    "app:dev": "env -u ELECTRON_RUN_AS_NODE NODE_ENV=development electron .",
+    "app:build": "next build && env -u ELECTRON_RUN_AS_NODE electron ."
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "@prisma/client": "^6.19.3",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
+    "iconv-lite": "^0.7.3",
+    "imapflow": "^1.4.7",
+    "lucide-react": "^1.23.0",
+    "mailparser": "^3.9.14",
+    "next": "16.2.10",
+    "node-cron": "^4.6.0",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.61.1",
+    "prisma": "^6.19.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "unpdf": "^1.6.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/mailparser": "^3.4.6",
+    "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "electron": "^43.3.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.0",
+    "typescript": "^5"
+  }
+}

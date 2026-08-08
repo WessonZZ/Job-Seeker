@@ -1,0 +1,38 @@
+# ── 依赖 ──
+node_modules/
+
+# ── Next.js 构建产物（不提交，npm run build 生成）──
+.next/
+out/
+build/
+
+# ── 环境变量（含密钥，绝不提交）──
+.env
+.env.local
+.env.*.local
+
+# ── 本地数据库（SQLite 数据，不提交；用 npm run db:seed 生成）──
+*.db
+*.db-journal
+prisma/dev.db
+dev.db
+
+# ── 用户上传的简历（个人隐私数据，不提交）──
+public/resumes/
+
+# ── 日志 ──
+*.log
+npm-debug.log*
+
+# ── macOS ──
+.DS_Store
+
+# ── TypeScript 增量编译缓存 ──
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# ── Electron 打包产物 ──
+dist/
+
+# ── 调试残留脚本 ──
+ck.cjs
