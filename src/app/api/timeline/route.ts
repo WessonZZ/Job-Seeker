@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(event, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "创建失败" }, { status: 500 });
   }
 }
@@ -66,7 +66,7 @@ export async function PUT(request: Request) {
     });
 
     return NextResponse.json(event);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 }
@@ -112,7 +112,7 @@ export async function DELETE(request: Request) {
     });
 
     return NextResponse.json({ success: true, newStatus });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "删除失败" }, { status: 500 });
   }
 }

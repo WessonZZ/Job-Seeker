@@ -43,6 +43,7 @@ export default function EmailSyncClient() {
   useEffect(() => {
     const saved = localStorage.getItem("email_sync_result");
     if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 挂载/联动时的一次性 setState，属合法模式
       try { setResult(JSON.parse(saved)); } catch { /* ignore */ }
     }
     const savedEmail = localStorage.getItem("email_sync_address");
@@ -100,7 +101,7 @@ export default function EmailSyncClient() {
           r.matched = (r.matched || 0) + 1;
           r.created = (r.created || 0) + (data.eventCreated || 1);
           // Remove error for this company
-          r.emails = r.emails?.map((e: any) => {
+          r.emails = r.emails?.map((e: { company?: string; error?: string }) => {
             if (e.company === company) return { ...e, error: undefined };
             return e;
           });

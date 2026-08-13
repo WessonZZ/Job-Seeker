@@ -163,7 +163,6 @@ async function main() {
     { companyName: "微软", title: "Software Engineer (2026 Campus)", jd: "Responsibilities:\n1. Design and develop software solutions\n2. Collaborate with cross-team partners\n3. Contribute to product improvements", salary: "250k-350k CNY", location: "北京/上海/苏州", tags: ["2026届", "校招", "English"], daysAgo: 1 },
   ];
 
-  let jobCount = 0;
   for (const job of jobData) {
     const company = createdCompanies.find((c) => c.name === job.companyName);
     if (!company) continue;
@@ -186,7 +185,6 @@ async function main() {
           isActive: true,
         },
       });
-      jobCount++;
     }
   }
 

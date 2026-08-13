@@ -34,6 +34,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 挂载/联动时的一次性 setState，属合法模式
     setFormData({
       name: user?.name ?? "",
       email: user?.email ?? "",

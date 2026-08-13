@@ -8,7 +8,7 @@ export async function GET() {
       orderBy: { updatedAt: "desc" },
     });
     return NextResponse.json(applications);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "获取投递记录失败" }, { status: 500 });
   }
 }
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(application, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "创建投递记录失败" }, { status: 500 });
   }
 }
@@ -60,7 +60,7 @@ export async function PATCH(request: Request) {
 
     const app = await prisma.application.update({ where: { id }, data: fields });
     return NextResponse.json(app);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 }

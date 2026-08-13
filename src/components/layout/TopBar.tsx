@@ -13,6 +13,7 @@ export default function TopBar() {
 
   useEffect(() => {
     const theme = document.documentElement.getAttribute("data-theme");
+// eslint-disable-next-line react-hooks/set-state-in-effect -- 挂载/联动时的一次性 setState，属合法模式
     setIsDark(theme === "dark");
   }, []);
 

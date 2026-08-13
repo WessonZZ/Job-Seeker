@@ -44,9 +44,9 @@ export async function processEmails(
   let matched = 0;
   let created = 0;
 
-  // 获取已有投递记录（用于匹配）
+  // 获取已有投递记录（含全部时间线事件，用于准确去重）
   const applications = await prisma.application.findMany({
-    include: { timelineEvents: { orderBy: { date: "desc" }, take: 1 } },
+    include: { timelineEvents: true },
   });
 
   for (const email of emails) {
@@ -81,20 +81,22 @@ export async function processEmails(
       emailItems.push({ subject: email.subject, from: email.from, isJobRelated: true, company: result.company, eventType: result.eventType });
       if (matchedApp) matchedIds.push(matchedApp.id);
 
-      // 检查是否已存在相同事件（去重）
+      // 检查是否已存在相同事件（去重：按 事件类型+日期+标题，
+      // 这样同一天两封不同笔试/面试邀请都能建事件，同时同一封邮件重复处理时能去重）
+      const eventDate = result.eventDate
+        ? new Date(result.eventDate)
+        : email.date;
+      const eventTitle = buildEventTitle(result);
+      const eventDay = eventDate.toDateString();
       const exists = matchedApp.timelineEvents.some(
         (e) =>
           e.eventType === result.eventType &&
-          e.date.toDateString() === new Date(result.eventDate ?? "").toDateString()
+          e.date.toDateString() === eventDay &&
+          e.title === eventTitle
       );
       if (exists) continue;
 
       // 创建时间线事件
-      const eventDate = result.eventDate
-        ? new Date(result.eventDate)
-        : email.date;
-
-      const eventTitle = buildEventTitle(result);
       createdIds.push(matchedApp.id);
       await prisma.timelineEvent.create({
         data: {
@@ -225,8 +227,15 @@ async function callLLM(
 
 function parseResult(text: string): ClassifiedEmail {
   try {
-    const jsonMatch = text.match(/\{[^{}]*"isJobRelated"[^{}]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    let t = text.trim();
+    // 剥掉 ```json ... ``` markdown 围栏
+    const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fence) t = fence[1].trim();
+    const jsonMatch = t.match(/\{[^{}]*"isJobRelated"[^{}]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed && typeof parsed === "object") return parsed as ClassifiedEmail;
+    }
     return { isJobRelated: false, confidence: 0 };
   } catch {
     return { isJobRelated: false, confidence: 0 };
@@ -301,11 +310,11 @@ function findMatchingApplication(
     id: string;
     companyName: string;
     position: string;
-    timelineEvents: Array<{ eventType: string; date: Date }>;
+    timelineEvents: Array<{ eventType: string; date: Date; title: string }>;
   }>
 ) {
   // 精确匹配公司名
-  let exact = applications.find(
+  const exact = applications.find(
     (a) =>
       a.companyName.includes(company) || company.includes(a.companyName)
   );

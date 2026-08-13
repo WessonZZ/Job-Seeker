@@ -3,8 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  ChevronLeft, ChevronRight, CalendarDays, Clock,
-  ChevronDown, AlertCircle,
+  ChevronLeft, ChevronRight, CalendarDays, AlertCircle,
 } from "lucide-react";
 
 interface CalendarEvent {

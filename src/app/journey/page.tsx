@@ -4,7 +4,6 @@ import {
   Send,
   CalendarCheck,
   CheckCircle2,
-  XCircle,
   Clock,
   TrendingUp,
   ArrowRight,

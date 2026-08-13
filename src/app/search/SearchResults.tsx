@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -13,7 +13,6 @@ import {
   Globe,
   Download,
   Loader2,
-  ChevronDown,
 } from "lucide-react";
 
 interface SearchIndustry {
@@ -49,7 +48,6 @@ interface LookupResult {
 
 export default function SearchResults() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const q = searchParams.get("q") ?? "";
 
   const [companies, setCompanies] = useState<SearchCompany[]>([]);
@@ -85,6 +83,7 @@ export default function SearchResults() {
 
   useEffect(() => {
     if (!q) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 挂载/联动时的一次性 setState，属合法模式
     setLoading(true);
 
     fetch(`/api/search?q=${encodeURIComponent(q)}`)

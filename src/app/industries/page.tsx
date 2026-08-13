@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Building2, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 export default async function IndustriesPage() {
   const industries = await prisma.industry.findMany({

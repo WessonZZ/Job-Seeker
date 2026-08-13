@@ -47,6 +47,7 @@ export default function AddTimelineEvent({
 
   // 事件类型变化时自动填充标题
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 挂载/联动时的一次性 setState，属合法模式
     setFormData((prev) => ({
       ...prev,
       title: DEFAULT_TITLES[prev.eventType] || "",

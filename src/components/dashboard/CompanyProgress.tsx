@@ -35,6 +35,7 @@ function CompanyLogo({
 }) {
   if (logo) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- 公司 logo 多为占位图，避免引入 next/image 远端域名配置
       <img
         src={logo}
         alt={name}

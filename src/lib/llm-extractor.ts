@@ -250,8 +250,18 @@ function cleanPageHtml(html: string): string {
 
 function parseJSONResponse(text: string): LLMResponse | null {
   try {
-    const jsonMatch = text.match(/\{[\s\S]*"jobs"[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    let t = text.trim();
+    // 剥掉 ```json ... ``` markdown 围栏（模型经常不听"不要代码块"）
+    const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fence) t = fence[1].trim();
+    // 去掉首尾非 JSON 的杂文字
+    const jsonMatch = t.match(/\{[\s\S]*"jobs"[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
+    // 校验结构，避免截到残缺 JSON
+    if (parsed && typeof parsed === "object" && Array.isArray(parsed.jobs)) {
+      return parsed as LLMResponse;
+    }
     return null;
   } catch {
     return null;
@@ -297,11 +307,27 @@ function fallbackExtract(
   for (const line of text) {
     if (seen.has(line)) continue;
     if (!KEYWORDS.some((kw) => line.includes(kw))) continue;
-    const skipWords = ["首页", "关于", "联系", "登录", "注册", "更多", "全部", "返回", "｜", "|", "—"];
-    if (skipWords.some((w) => line.includes(w))) continue;
+    // 过滤导航/栏目/页面文案等误报
+    if (isNavJunk(line)) continue;
     seen.add(line);
     jobs.push({ title: line.slice(0, 60), jd: "", url: pageUrl });
   }
 
   return jobs;
+}
+
+/** 判断一行是否更像导航/栏目文案而不是真实岗位标题 */
+function isNavJunk(line: string): boolean {
+  const junkPhrases = [
+    "首页", "关于我们", "加入我们", "联系我们", "公司介绍", "公司简介",
+    "新闻中心", "产品中心", "解决方案", "新闻资讯", "人才招聘", "校园招聘",
+    "热招", "职位搜索", "工作机会", "联系方式", "更多", "全部", "返回",
+    "登录", "注册", "隐私政策", "法律声明", "网站地图", "投资者关系",
+    "社会责任", "诚聘英才", "期待", "欢迎加入", "职位列表", "招聘信息",
+    "查看详情", "投递简历", "立即申请", "在线投递", "了解更多", "查看更多",
+    "｜", "|", "—", ">", "…", "…", "工作地点", "薪资待遇", "职位要求",
+  ];
+  // 含"中心/我们/关于/更多/招聘信息/职位列表"等栏目词的也视为导航
+  if (/中心|关于我们|联系我们|加入我们|招聘信息|职位列表|热招|查看更多/.test(line)) return true;
+  return junkPhrases.some((w) => line.includes(w));
 }

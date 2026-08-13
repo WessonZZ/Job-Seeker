@@ -8,27 +8,8 @@ import EditableWorkExp from "./EditableWorkExp";
 import EditableProjectExp from "./EditableProjectExp";
 import AddProjectButton from "./AddProjectButton";
 
-function formatDateShort(d: Date): string {
-  return d.getFullYear() + "." + (d.getMonth() + 1);
-}
-
-function splitLines(text: string): string[] {
-  const parts = text.split(/\n+|(?=\d+\.)/).map(l => l.trim()).filter(l => l.length > 0);
-  return parts.length > 0 ? parts : [text];
-}
-
-function calcDuration(start: Date, end?: Date | null): string {
-  const ms = (end || new Date()).getTime() - start.getTime();
-  const months = Math.round(ms / (1000 * 60 * 60 * 24 * 30));
-  if (months < 1) return "不足1个月";
-  if (months < 12) return months + "个月";
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  return rem > 0 ? years + "年" + rem + "个月" : years + "年";
-}
-
 export default async function ProfilePage() {
-  let user = await prisma.user.findFirst();
+  const user = await prisma.user.findFirst();
   let workExperiences: Array<{
     id: string;
     company: string;

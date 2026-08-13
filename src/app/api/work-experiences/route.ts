@@ -19,7 +19,7 @@ export async function PUT(request: Request) {
 
     const exp = await prisma.workExperience.update({ where: { id }, data });
     return NextResponse.json(exp);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 }
@@ -33,7 +33,7 @@ export async function DELETE(request: Request) {
 
     await prisma.workExperience.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "删除失败" }, { status: 500 });
   }
 }

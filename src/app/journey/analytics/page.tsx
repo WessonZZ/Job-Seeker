@@ -31,7 +31,6 @@ export default async function AnalyticsPage() {
   }
 
   // Interview conversion rate
-  const applied = statusMap["applied"] ?? 0;
   const oa = statusMap["oa"] ?? 0;
   const interview = statusMap["interview"] ?? 0;
   const offer = statusMap["offer"] ?? 0;

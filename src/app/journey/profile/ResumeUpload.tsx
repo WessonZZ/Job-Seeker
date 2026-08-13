@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, FileText, Loader2, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
 import ResumePDFViewer from "./ResumePDFViewer";

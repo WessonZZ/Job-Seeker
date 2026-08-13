@@ -64,10 +64,6 @@ export default function ScraperControl() {
   const [loading, setLoading] = useState(true);
   const [expandedSource, setExpandedSource] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchStatus();
-  }, []);
-
   const fetchStatus = async () => {
     try {
       const res = await fetch("/api/scraper");
@@ -80,6 +76,11 @@ export default function ScraperControl() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 数据获取后异步 setState，属合法模式
+    fetchStatus();
+  }, []);
 
   const handleScrape = async () => {
     setScraping(true);

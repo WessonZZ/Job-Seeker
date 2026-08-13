@@ -47,9 +47,10 @@ export function detectEmailProvider(email: string): EmailConfig | null {
   if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live"))
     return { ...EMAIL_PROVIDERS.outlook, user: email };
   if (domain.includes("foxmail")) return { ...EMAIL_PROVIDERS.foxmail, user: email };
+  // 仅对确认使用 Office 365/Outlook 的学校才映射（如香港中文大学）
   if (domain.includes("cuhk")) return { ...EMAIL_PROVIDERS.outlook, user: email };
-  if (domain.endsWith(".edu") || domain.endsWith(".edu.cn") || domain.endsWith(".edu.hk"))
-    return { ...EMAIL_PROVIDERS.outlook, user: email };
+  // 其余 .edu/.edu.cn 邮箱多为学校自建/企业邮，无法猜测 IMAP 服务器，
+  // 返回 null 由用户在配置里手动指定 host（避免盲目映射到 Outlook 导致同步失败）
   return null;
 }
 

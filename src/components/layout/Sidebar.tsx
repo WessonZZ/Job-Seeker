@@ -84,7 +84,8 @@ export default function Sidebar() {
     const saved = localStorage.getItem(WIDTH_KEY);
     if (saved) {
       const n = Number(saved);
-      if (n >= MIN_WIDTH && n <= MAX_WIDTH) setWidth(n);
+      if (n >= MIN_WIDTH && n <= MAX_WIDTH) // eslint-disable-next-line react-hooks/set-state-in-effect -- 挂载/联动时的一次性 setState，属合法模式
+        setWidth(n);
     }
   }, []);
 

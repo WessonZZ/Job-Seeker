@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       },
     });
     return NextResponse.json(proj);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "创建失败" }, { status: 500 });
   }
 }
@@ -51,7 +51,7 @@ export async function PUT(request: Request) {
 
     const proj = await prisma.projectExperience.update({ where: { id }, data });
     return NextResponse.json(proj);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 }
@@ -65,7 +65,7 @@ export async function DELETE(request: Request) {
 
     await prisma.projectExperience.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "删除失败" }, { status: 500 });
   }
 }

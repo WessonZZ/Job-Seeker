@@ -10,7 +10,7 @@
  *   npm run app:build  # 先构建生产版本
  */
 const { app, BrowserWindow, dialog, Menu, nativeTheme } = require("electron");
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const http = require("http");
 const path = require("path");
 const fs = require("fs");
@@ -29,8 +29,13 @@ let mainWindow = null;
 function isServerUp() {
   return new Promise((resolve) => {
     const req = http.get(APP_URL, (res) => {
-      res.destroy();
-      resolve(true);
+      let body = "";
+      res.on("data", (d) => {
+        body += d;
+        if (body.length > 200000) req.destroy();
+      });
+      res.on("end", () => resolve(isOurApp(body)));
+      res.on("error", () => resolve(false));
     });
     req.on("error", () => resolve(false));
     req.setTimeout(1200, () => {
@@ -38,6 +43,15 @@ function isServerUp() {
       resolve(false);
     });
   });
+}
+
+/** 判断端口上的响应是否真的来自本应用，避免 3000 被其它服务占用导致打开陌生页面 */
+function isOurApp(body) {
+  return (
+    body.includes("求职助手") ||
+    body.includes("秋招/实习求职记录") ||
+    body.includes("_next/static")
+  );
 }
 
 function waitForServer(timeoutMs = 90000) {
@@ -80,10 +94,24 @@ function startNextServer() {
 
 function killServer() {
   if (serverProc && !serverProc.killed) {
-    try {
-      process.kill(-serverProc.pid, "SIGTERM");
-    } catch {
-      serverProc.kill("SIGTERM");
+    if (process.platform === "win32") {
+      // Windows 没有进程组，用 taskkill 连子进程一起杀
+      try {
+        spawnSync("taskkill", ["/pid", String(serverProc.pid), "/T", "/F"]);
+      } catch {
+        try {
+          serverProc.kill();
+        } catch {}
+      }
+    } else {
+      // macOS/Linux：杀整个进程组（含 next 子进程）
+      try {
+        process.kill(-serverProc.pid, "SIGTERM");
+      } catch {
+        try {
+          serverProc.kill("SIGTERM");
+        } catch {}
+      }
     }
   }
   serverProc = null;
@@ -248,6 +276,9 @@ if (!gotLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
+    } else {
+      // 窗口已关闭（持久化模式）：再次启动应重新打开窗口，而不是无反馈
+      openWindow();
     }
   });
 

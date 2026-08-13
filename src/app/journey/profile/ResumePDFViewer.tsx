@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import "pdfjs-dist/web/pdf_viewer.css";
+import type { PDFViewer as PDFViewerInstance } from "pdfjs-dist/web/pdf_viewer.mjs";
 
 /**
  * 简历 PDF 预览（pdf.js 渲染，支持选中/复制文字）
@@ -10,11 +11,10 @@ import "pdfjs-dist/web/pdf_viewer.css";
  */
 export default function ResumePDFViewer({ file }: { file: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<any>(null);
+  const viewerRef = useRef<PDFViewerInstance | null>(null);
   const fitScaleRef = useRef<number>(1);
   const [zoom, setZoom] = useState(55);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
-  const [scaleApplied, setScaleApplied] = useState(0.55);
 
   const ZOOM_MIN = 30;
   const ZOOM_MAX = 150;
@@ -54,7 +54,8 @@ export default function ResumePDFViewer({ file }: { file: string }) {
     })();
     return () => {
       cancelled = true;
-      viewerRef.current?.destroy?.();
+      // 某些 PDFViewer 版本提供 destroy，安全清理
+      (viewerRef.current as unknown as { destroy?: () => void } | null)?.destroy?.();
       viewerRef.current = null;
     };
   }, [file]);
@@ -63,9 +64,7 @@ export default function ResumePDFViewer({ file }: { file: string }) {
   useEffect(() => {
     const viewer = viewerRef.current;
     if (viewer) {
-      const scale = (fitScaleRef.current * zoom) / 100;
-      viewer.currentScale = scale;
-      setScaleApplied(scale);
+      viewer.currentScale = (fitScaleRef.current * zoom) / 100;
     }
   }, [zoom, status]);
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { format, STATUS_CONFIG, EVENT_CONFIG } from "@/lib/utils";
+import { format, STATUS_CONFIG } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {

@@ -18,7 +18,8 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
     where.company = { industry: { slug: params.industry } };
   }
   if (params.date) {
-    const start = new Date(params.date);
+    // 用本地零点作为当天边界（new Date("2026-08-13") 会被解析成 UTC 零点，差 8 小时）
+    const start = new Date(`${params.date}T00:00:00`);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
     where.postedDate = { gte: start, lt: end };
@@ -33,8 +34,6 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
     }),
     prisma.industry.findMany({ orderBy: { name: "asc" } }),
   ]);
-
-  const today = new Date().toISOString().split("T")[0];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
