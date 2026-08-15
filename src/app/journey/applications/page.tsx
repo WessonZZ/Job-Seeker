@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Plus, ChevronRight, LayoutList, Building2, Clock,
 } from "lucide-react";
+import DeleteApplicationButton from "./DeleteApplicationButton";
 
 interface Props {
   searchParams: Promise<{ status?: string; view?: string; ids?: string; source?: string }>;
@@ -128,27 +129,29 @@ export default async function ApplicationsPage({ searchParams }: Props) {
               {applications.map((app) => {
                 const config = STATUS_CONFIG[app.effStatus as keyof typeof STATUS_CONFIG];
                 return (
-                  <Link key={app.id} href={`/journey/applications/${app.id}`}
-                    className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--sidebar-hover)] transition-colors group">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-medium truncate group-hover:text-[var(--primary)] transition-colors">{app.position}</h3>
-                        {config && (
-                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1 ${config.color}`}>
-                            <span>{config.icon}</span>{config.label}
-                          </span>
-                        )}
+                  <div key={app.id} className="flex items-center gap-1 px-5 py-4 hover:bg-[var(--sidebar-hover)] transition-colors group">
+                    <Link href={`/journey/applications/${app.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-medium truncate group-hover:text-[var(--primary)] transition-colors">{app.position}</h3>
+                          {config && (
+                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1 ${config.color}`}>
+                              <span>{config.icon}</span>{config.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-sm text-[var(--muted)]">
+                          <span>{app.companyName}</span>
+                          <span>·</span>
+                          <span>投递于 {format.date(app.appliedDate)}</span>
+                          {app._count.timelineEvents > 0 && (<><span>·</span><span>{app._count.timelineEvents} 个事件</span></>)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-[var(--muted)]">
-                        <span>{app.companyName}</span>
-                        <span>·</span>
-                        <span>投递于 {format.date(app.appliedDate)}</span>
-                        {app._count.timelineEvents > 0 && (<><span>·</span><span>{app._count.timelineEvents} 个事件</span></>)}
-                      </div>
-                    </div>
-                    {app.priority > 0 && <span className="text-xs text-amber-500 font-medium">★ 重点</span>}
-                    <ChevronRight className="w-4 h-4 text-[var(--muted)] shrink-0" />
-                  </Link>
+                      {app.priority > 0 && <span className="text-xs text-amber-500 font-medium">★ 重点</span>}
+                      <ChevronRight className="w-4 h-4 text-[var(--muted)] shrink-0" />
+                    </Link>
+                    <DeleteApplicationButton applicationId={app.id} position={app.position} companyName={app.companyName} />
+                  </div>
                 );
               })}
             </div>
@@ -184,25 +187,27 @@ export default async function ApplicationsPage({ searchParams }: Props) {
                   {apps.map((app) => {
                     const config = STATUS_CONFIG[app.effStatus as keyof typeof STATUS_CONFIG];
                     return (
-                      <Link key={app.id} href={`/journey/applications/${app.id}`}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-[var(--sidebar-hover)] transition-colors group">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-sm font-medium truncate group-hover:text-[var(--primary)]">{app.position}</h4>
-                            {config && (
-                              <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1 ${config.color}`}>
-                                <span>{config.icon}</span>{config.label}
-                              </span>
-                            )}
+                      <div key={app.id} className="flex items-center gap-1 px-5 py-3.5 hover:bg-[var(--sidebar-hover)] transition-colors group">
+                        <Link href={`/journey/applications/${app.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-sm font-medium truncate group-hover:text-[var(--primary)]">{app.position}</h4>
+                              {config && (
+                                <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1 ${config.color}`}>
+                                  <span>{config.icon}</span>{config.label}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 text-xs text-[var(--muted)]">
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{format.date(app.appliedDate)}</span>
+                              {app._count.timelineEvents > 0 && <span>{app._count.timelineEvents} 个事件</span>}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3 mt-0.5 text-xs text-[var(--muted)]">
-                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{format.date(app.appliedDate)}</span>
-                            {app._count.timelineEvents > 0 && <span>{app._count.timelineEvents} 个事件</span>}
-                          </div>
-                        </div>
-                        {app.priority > 0 && <span className="text-xs text-amber-500">★</span>}
-                        <ChevronRight className="w-4 h-4 text-[var(--muted)] shrink-0" />
-                      </Link>
+                          {app.priority > 0 && <span className="text-xs text-amber-500">★</span>}
+                          <ChevronRight className="w-4 h-4 text-[var(--muted)] shrink-0" />
+                        </Link>
+                        <DeleteApplicationButton applicationId={app.id} position={app.position} companyName={app.companyName} />
+                      </div>
                     );
                   })}
                 </div>

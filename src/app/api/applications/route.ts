@@ -51,6 +51,18 @@ export async function POST(request: Request) {
   }
 }
 
+// DELETE /api/applications — 删除投递记录（时间线级联删除）
+export async function DELETE(request: Request) {
+  try {
+    const { id } = await request.json();
+    if (!id) return NextResponse.json({ error: "缺少 ID" }, { status: 400 });
+    await prisma.application.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "删除失败" }, { status: 500 });
+  }
+}
+
 // PATCH /api/applications — 更新单个字段（如 jd）
 export async function PATCH(request: Request) {
   try {

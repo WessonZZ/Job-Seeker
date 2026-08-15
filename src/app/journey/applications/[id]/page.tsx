@@ -1,15 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { format, STATUS_CONFIG } from "@/lib/utils";
+import { format } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Calendar,
-  ExternalLink,
-  Clock,
-} from "lucide-react";
+import { ArrowLeft, Clock } from "lucide-react";
 import AddTimelineEvent from "./AddTimelineEvent";
+import EditableHeader from "./EditableHeader";
 import EditableJD from "./EditableJD";
+import EditableNotes from "./EditableNotes";
 import TimelineEventCard from "./TimelineEventCard";
 
 interface ApplicationDetailPageProps {
@@ -32,8 +29,9 @@ export default async function ApplicationDetailPage({
 
   if (!application) notFound();
 
-  const statusConfig =
-    STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG];
+  const companyHref = application.jobPosting?.company
+    ? `/industries/${application.jobPosting.company.industryId}/companies/${application.jobPosting.company.slug}`
+    : null;
 
   // 计算各阶段之间的时间间隔
   const timelineWithGap = application.timelineEvents.map((event, i, arr) => {
@@ -61,58 +59,17 @@ export default async function ApplicationDetailPage({
         返回投递列表
       </Link>
 
-      {/* Application Header */}
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold truncate">
-                {application.position}
-              </h1>
-              {statusConfig && (
-                <span
-                  className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}
-                >
-                  {statusConfig.label}
-                </span>
-              )}
-              {application.priority > 0 && (
-                <span className="text-amber-500 text-sm">
-                  {application.priority === 2 ? "★★★★" : "★★★"}
-                </span>
-              )}
-            </div>
-            <p className="text-lg text-[var(--muted)] mt-1">
-              {application.companyName}
-            </p>
-            <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-[var(--muted)]">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                投递于 {format.date(application.appliedDate)}
-              </span>
-              {application.jobPosting?.company && (
-                <Link
-                  href={`/industries/${application.jobPosting.company.industryId}/companies/${application.jobPosting.company.slug}`}
-                  className="text-[var(--primary)] hover:underline"
-                >
-                  查看公司详情
-                </Link>
-              )}
-            </div>
-          </div>
-          {application.url && (
-            <a
-              href={application.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm hover:bg-[var(--sidebar-hover)] transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              原链接
-            </a>
-          )}
-        </div>
-      </div>
+      {/* Application Header (editable) */}
+      <EditableHeader
+        applicationId={application.id}
+        position={application.position}
+        companyName={application.companyName}
+        appliedDate={application.appliedDate}
+        status={application.status}
+        priority={application.priority}
+        url={application.url}
+        companyHref={companyHref}
+      />
 
       {/* JD Section (editable) */}
       <EditableJD
@@ -121,15 +78,11 @@ export default async function ApplicationDetailPage({
         companyName={application.companyName}
       />
 
-      {/* Notes */}
-      {application.notes && (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-3">备注</h2>
-          <p className="text-sm text-[var(--muted)] whitespace-pre-wrap">
-            {application.notes}
-          </p>
-        </div>
-      )}
+      {/* Notes (editable) */}
+      <EditableNotes
+        applicationId={application.id}
+        initialNotes={application.notes}
+      />
 
       {/* ======== Timeline ======== */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
