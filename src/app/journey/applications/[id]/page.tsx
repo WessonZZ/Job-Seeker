@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { format } from "@/lib/utils";
+import { format, hasClockTime } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Clock } from "lucide-react";
@@ -122,6 +122,11 @@ export default async function ApplicationDetailPage({
                         <div className="text-xs font-semibold text-[var(--foreground)]">
                           {format.dateShortCN(event.date)}
                         </div>
+                        {hasClockTime(event.date) && (
+                          <div className="text-[11px] font-medium text-[var(--primary)] mt-0.5">
+                            {format.clock(event.date)}
+                          </div>
+                        )}
                         {event.gap && (
                           <div className="text-[10px] text-[var(--muted)] mt-0.5">{event.gap}</div>
                         )}

@@ -1,8 +1,9 @@
 import ScraperControl from "./ScraperControl";
-import { getLLMProvider } from "@/lib/llm-extractor";
+import Link from "next/link";
+import { getLLMStatus } from "@/lib/llm-config";
 
-export default function ScraperPage() {
-  const provider = getLLMProvider();
+export default async function ScraperPage() {
+  const provider = await getLLMStatus();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -26,13 +27,13 @@ export default function ScraperPage() {
           <div>
             <span className="font-medium">
               {provider.configured
-                ? `${provider.name} 模式已开启 (${provider.model})`
+                ? `LLM 模式已开启 (${provider.model})`
                 : "关键词匹配模式"}
             </span>
             <p className="text-xs mt-0.5 opacity-80">
               {provider.configured
-                ? `使用 ${provider.name} AI 智能识别和提取岗位信息`
-                : `未配置 LLM API Key。在 .env 文件中 ${provider.keyHint}`}
+                ? `使用 ${provider.model} 智能识别和提取岗位信息`
+                : <>未配置 LLM。去 <Link href="/settings" className="underline">设置</Link> 页面配置 API Key</>}
             </p>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { format } from "@/lib/utils";
 
 const EVENT_TYPE_OPTIONS = [
   { value: "submit", label: "投递简历" },
@@ -42,7 +43,8 @@ export default function AddTimelineEvent({
     eventType: "note",
     title: "",
     description: "",
-    date: new Date().toISOString().split("T")[0],
+    date: format.dateShort(new Date()),
+    time: "",
   });
 
   // 事件类型变化时自动填充标题
@@ -64,7 +66,10 @@ export default function AddTimelineEvent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           applicationId,
-          ...formData,
+          eventType: formData.eventType,
+          title: formData.title,
+          description: formData.description,
+          date: formData.time ? `${formData.date}T${formData.time}` : `${formData.date}T00:00`,
           isKey: formData.eventType !== "note",
         }),
       });
@@ -74,7 +79,8 @@ export default function AddTimelineEvent({
           eventType: "note",
           title: "备注",
           description: "",
-          date: new Date().toISOString().split("T")[0],
+          date: format.dateShort(new Date()),
+          time: "",
         });
         setOpen(false);
         router.refresh();
@@ -103,7 +109,7 @@ export default function AddTimelineEvent({
       onSubmit={handleSubmit}
       className="mt-4 p-4 rounded-lg border border-[var(--border)] bg-[var(--sidebar-hover)] space-y-3"
     >
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs font-medium mb-1">事件类型</label>
           <select
@@ -134,7 +140,19 @@ export default function AddTimelineEvent({
           />
         </div>
 
-        <div className="sm:col-span-2">
+        <div>
+          <label className="block text-xs font-medium mb-1">时间</label>
+          <input
+            type="time"
+            value={formData.time}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, time: e.target.value }))
+            }
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm"
+          />
+        </div>
+
+        <div className="sm:col-span-3">
           <label className="block text-xs font-medium mb-1">
             标题 <span className="text-[var(--muted)]">（选填，默认使用事件类型）</span>
           </label>
@@ -149,7 +167,7 @@ export default function AddTimelineEvent({
           />
         </div>
 
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-3">
           <label className="block text-xs font-medium mb-1">描述</label>
           <textarea
             rows={2}

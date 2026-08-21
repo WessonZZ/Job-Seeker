@@ -7,6 +7,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { getLLMConfig, type LLMConfig } from "@/lib/llm-config";
 import type { EmailMessage } from "./email-service";
 
 interface ClassifiedEmail {
@@ -168,7 +169,17 @@ async function classifyEmail(email: EmailMessage): Promise<ClassifiedEmail> {
 
 如果无关，返回 {"isJobRelated":false,"confidence":0}`;
 
-  // 优先 DeepSeek
+  // 优先用数据库配置（设置页，OpenAI 兼容）
+  const cfg = await getLLMConfig();
+  if (cfg.source === "db") {
+    try {
+      return await callConfiguredLLM(prompt, cfg);
+    } catch (e) {
+      console.error("[Email] 数据库配置调用失败，回退环境变量:", e);
+    }
+  }
+
+  // 其次 DeepSeek
   if (deepseekKey && provider !== "claude") {
     try {
       return await callLLM(prompt, deepseekKey, "deepseek");
@@ -186,6 +197,27 @@ async function classifyEmail(email: EmailMessage): Promise<ClassifiedEmail> {
 
   // 无 LLM 时的关键词回退
   return keywordFallback(email);
+}
+
+/** 用数据库配置（OpenAI 兼容）调用 LLM 分类邮件 */
+async function callConfiguredLLM(prompt: string, cfg: LLMConfig): Promise<ClassifiedEmail> {
+  const baseUrl = cfg.baseUrl.replace(/\/+$/, "");
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${cfg.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: cfg.model,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1024,
+      temperature: 0.1,
+    }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  const data = await res.json();
+  return parseResult(data?.choices?.[0]?.message?.content ?? "");
 }
 
 async function callLLM(

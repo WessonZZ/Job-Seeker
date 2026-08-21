@@ -17,10 +17,10 @@ export default async function CalendarPage() {
     orderBy: { date: "asc" },
   });
 
-  // 按日期分组
+  // 按日期分组（本地时区，避免跨日偏移）
   const eventsByDate = new Map<string, typeof events>();
   for (const event of events) {
-    const dateKey = event.date.toISOString().split("T")[0];
+    const dateKey = `${event.date.getFullYear()}-${String(event.date.getMonth() + 1).padStart(2, "0")}-${String(event.date.getDate()).padStart(2, "0")}`;
     if (!eventsByDate.has(dateKey)) eventsByDate.set(dateKey, []);
     eventsByDate.get(dateKey)!.push(event);
   }

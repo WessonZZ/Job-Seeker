@@ -16,6 +16,7 @@
  */
 
 import type { ExtractedJob } from "./scraper-engine";
+import { getLLMConfig, type LLMConfig } from "@/lib/llm-config";
 
 const MAX_TEXT_LENGTH = 8000;
 const KEYWORDS = ["工程师", "开发", "算法", "产品", "运营", "设计", "校招", "实习"];
@@ -46,39 +47,6 @@ function hasRealKey(key: string | undefined): boolean {
   return true;
 }
 
-/** 获取当前 LLM 提供者和模型信息 */
-export function getLLMProvider(): { name: string; model: string; configured: boolean; keyHint: string } {
-  const provider = (process.env["LLM_PROVIDER"] ?? "").toLowerCase();
-  const model = process.env["LLM_MODEL"] || "";
-  const deepseekKey = process.env["DEEPSEEK_API_KEY"];
-  const anthropicKey = process.env["ANTHROPIC_API_KEY"];
-
-  if (provider === "claude" || provider === "anthropic") {
-    return {
-      name: "Claude",
-      model: model || "claude-sonnet-5-20251001",
-      configured: hasRealKey(anthropicKey),
-      keyHint: "设置 ANTHROPIC_API_KEY=sk-ant-...",
-    };
-  }
-
-  // 默认: DeepSeek
-  if (hasRealKey(deepseekKey)) {
-    return {
-      name: "DeepSeek",
-      model: model || "deepseek-chat",
-      configured: true,
-      keyHint: "",
-    };
-  }
-  return {
-    name: "DeepSeek",
-    model: model || "deepseek-chat",
-    configured: false,
-    keyHint: "在 .env 中设置你的 DEEPSEEK_API_KEY=sk-...",
-  };
-}
-
 /**
  * 使用 LLM 从 HTML 中提取岗位信息
  * 按优先级: DeepSeek → Claude → 关键词回退
@@ -88,6 +56,17 @@ export async function extractWithLLM(
   companyName: string,
   pageUrl: string
 ): Promise<ExtractedJob[]> {
+  // 优先数据库配置（设置页，OpenAI 兼容）
+  const cfg = await getLLMConfig();
+  if (cfg.source === "db") {
+    try {
+      const jobs = await callConfigured(html, companyName, pageUrl, cfg);
+      if (jobs.length > 0) return jobs;
+    } catch (err) {
+      console.error("[LLM] 数据库配置调用失败:", err);
+    }
+  }
+
   const provider = (process.env["LLM_PROVIDER"] ?? "").toLowerCase();
   const deepseekKey = hasRealKey(process.env["DEEPSEEK_API_KEY"]) ? process.env["DEEPSEEK_API_KEY"] : undefined;
   const anthropicKey = hasRealKey(process.env["ANTHROPIC_API_KEY"]) ? process.env["ANTHROPIC_API_KEY"] : undefined;
@@ -114,6 +93,23 @@ export async function extractWithLLM(
 
   console.log("[LLM] 无可用 LLM，使用关键词回退");
   return fallbackExtract(html, companyName, pageUrl);
+}
+
+/** 用数据库配置（OpenAI 兼容）提取岗位 */
+async function callConfigured(
+  html: string,
+  companyName: string,
+  pageUrl: string,
+  cfg: LLMConfig
+): Promise<ExtractedJob[]> {
+  const cleanHtml = cleanPageHtml(html);
+  const result = await callOpenAICompatible(
+    `${cfg.baseUrl.replace(/\/+$/, "")}/chat/completions`,
+    cfg.apiKey,
+    cfg.model,
+    [{ role: "user", content: buildPrompt(companyName, pageUrl, cleanHtml) }]
+  );
+  return parseAndMap(result, pageUrl);
 }
 
 // ═══════════════════════════════════════

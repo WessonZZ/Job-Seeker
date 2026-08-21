@@ -135,3 +135,9 @@ model TimelineEvent {
   isKey         Boolean     @default(false)
   createdAt     DateTime    @default(now())
 }
+
+// 应用级键值设置（如 LLM 配置），运行时读写，无需改环境变量
+model Setting {
+  key   String @id
+  value String
+}

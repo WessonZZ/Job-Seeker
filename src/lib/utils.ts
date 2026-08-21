@@ -23,11 +23,36 @@ export function formatDate(date: Date | string): string {
 }
 
 /**
- * Format date as YYYY-MM-DD
+ * Format date as YYYY-MM-DD（本地时区，避免跨时区偏移）
  */
 export function formatDateShort(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toISOString().split("T")[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Format only the clock time as HH:mm
+ */
+export function formatClock(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/**
+ * Whether a datetime carries a meaningful time (not midnight 00:00)
+ */
+export function hasClockTime(date: Date | string): boolean {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.getHours() !== 0 || d.getMinutes() !== 0;
+}
+
+/**
+ * Format date, appending HH:mm when a time is set
+ */
+export function formatDateWithOptionalTime(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const datePart = d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  return hasClockTime(d) ? `${datePart} ${formatClock(d)}` : datePart;
 }
 
 /**
@@ -141,4 +166,6 @@ export const format = {
   dateShort: formatDateShort,
   dateTime: formatDateTime,
   dateShortCN: formatDateShortCN,
+  clock: formatClock,
+  dateTimeOptional: formatDateWithOptionalTime,
 };

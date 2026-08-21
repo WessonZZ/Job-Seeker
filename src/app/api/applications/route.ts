@@ -41,7 +41,8 @@ export async function POST(request: Request) {
         jd: resolvedJd ?? "", url: url ?? "",
         appliedDate: new Date(appliedDate),
         status: status ?? "applied", notes: notes ?? "", priority: priority ?? 0,
-        timelineEvents: { create: { eventType: "submit", title: "投递简历", date: new Date(appliedDate), isKey: true } },
+        // 投递简历事件存本地午夜，避免仅日期事件在本地时区显示成 08:00
+        timelineEvents: { create: { eventType: "submit", title: "投递简历", date: new Date(`${appliedDate}T00:00`), isKey: true } },
       },
     });
 

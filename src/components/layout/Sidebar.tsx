@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   },
   { href: "/scraper", label: "爬虫管理", hero: "THOR" },
   { href: "/journey/email-sync", label: "邮件同步", hero: "BP" },
+  { href: "/settings", label: "设置", hero: "BW" },
 ];
 
 const MIN_WIDTH = 110;

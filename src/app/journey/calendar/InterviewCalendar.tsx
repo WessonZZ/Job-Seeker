@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, CalendarDays, AlertCircle,
 } from "lucide-react";
+import { format, hasClockTime } from "@/lib/utils";
 
 interface CalendarEvent {
   id: string;
@@ -65,6 +66,18 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
 
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const selectedEvents = selectedDay ? eventsByDate[selectedDay] || [] : [];
+
+  // 当前查看月份里"今天及以后"的面试，按日期排序（主动展示，无需点击）
+  const monthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+  const upcomingEvents = useMemo(() => {
+    const todayS = todayStr();
+    const list: CalendarEvent[] = [];
+    for (const [dateStr, evs] of Object.entries(eventsByDate)) {
+      if (!dateStr.startsWith(monthPrefix) || dateStr < todayS) continue;
+      list.push(...evs);
+    }
+    return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [eventsByDate, monthPrefix]);
 
   const totalEvents = Object.values(eventsByDate).flat().length;
 
@@ -160,6 +173,61 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
         </div>
       </div>
 
+      {/* 即将到来的面试（主动展示，无需点击） */}
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <CalendarDays className="w-5 h-5 text-[var(--primary)]" />
+          <h3 className="font-semibold">即将到来的面试</h3>
+          {upcomingEvents.length > 0 && (
+            <span className="text-xs text-[var(--muted)]">{upcomingEvents.length} 个安排</span>
+          )}
+        </div>
+
+        {upcomingEvents.length === 0 ? (
+          <p className="text-sm text-[var(--muted)] text-center py-4">
+            {monthPrefix <= todayStr() ? "本月没有未来的面试安排" : "该月暂无面试安排"}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {upcomingEvents.map((ev) => {
+              const cd = countdownInfo(ev.date);
+              return (
+                <Link
+                  key={ev.id}
+                  href={`/journey/applications/${ev.application.id}`}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[var(--border)] hover:shadow-sm hover:border-[var(--primary)]/30 transition-all group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      ev.eventType === "interview"
+                        ? "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300"
+                        : "bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+                    }`}>
+                      {ev.eventType === "interview" ? "🤝面试" : "📅待预约"}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate group-hover:text-[var(--primary)] transition-colors">
+                        {ev.application.companyName} · {ev.application.position}
+                      </div>
+                      <div className="text-xs text-[var(--muted)] truncate">{ev.title}</div>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2">
+                    <span className="text-xs text-[var(--muted)]">
+                      {format.dateShortCN(ev.date)}
+                      {hasClockTime(ev.date) && ` ${format.clock(ev.date)}`}
+                    </span>
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${cd.cls}`}>
+                      {cd.label}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* 选中日期的详情 */}
       {selectedDay && (
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5">
@@ -199,9 +267,11 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
                       )}
                     </div>
                     <div className="shrink-0 text-right">
-                      <div className="text-xs font-medium text-[var(--foreground)]">
-                        {formatTime(ev.date)}
-                      </div>
+                      {hasClockTime(ev.date) && (
+                        <div className="text-xs font-medium text-[var(--foreground)]">
+                          {format.clock(ev.date)}
+                        </div>
+                      )}
                       <div className="text-[10px] text-[var(--muted)] mt-0.5">{ev.application.position}</div>
                     </div>
                   </div>
@@ -229,7 +299,15 @@ function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function formatTime(date: Date): string {
-  const d = new Date(date);
-  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+function countdownInfo(date: Date): { label: string; cls: string } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  const days = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (days === 0)
+    return { label: "今天", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" };
+  if (days === 1)
+    return { label: "明天", cls: "bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400" };
+  return { label: `还有 ${days} 天`, cls: "bg-gray-100 text-gray-600 dark:bg-gray-500/10 dark:text-gray-400" };
 }

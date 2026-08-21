@@ -12,6 +12,9 @@ import {
 import { STATUS_CONFIG } from "@/lib/utils";
 import { computeEffectiveStatus } from "@/lib/application-stages";
 
+// 求职历程实时反映投递数据，禁止构建时静态预渲染
+export const dynamic = "force-dynamic";
+
 async function getJourneyStats() {
   const [
     totalApplications,

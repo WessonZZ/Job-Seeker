@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, X, Check, Calendar as CalIcon } from "lucide-react";
-import { format, EVENT_CONFIG } from "@/lib/utils";
+import { format, hasClockTime, EVENT_CONFIG } from "@/lib/utils";
 
 const EVENT_TYPE_OPTIONS = [
   { value: "submit", label: "投递简历" },
@@ -40,11 +40,13 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const initialEventDate = new Date(event.date);
   const [formData, setFormData] = useState({
     eventType: event.eventType,
     title: event.title,
     description: event.description || "",
-    date: new Date(event.date).toISOString().split("T")[0],
+    date: format.dateShort(initialEventDate),
+    time: hasClockTime(initialEventDate) ? format.clock(initialEventDate) : "",
   });
 
   const eventConfig = EVENT_CONFIG[event.eventType as keyof typeof EVENT_CONFIG];
@@ -55,7 +57,13 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
       await fetch("/api/timeline", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: event.id, ...formData }),
+        body: JSON.stringify({
+          id: event.id,
+          eventType: formData.eventType,
+          title: formData.title,
+          description: formData.description,
+          date: formData.time ? `${formData.date}T${formData.time}` : `${formData.date}T00:00`,
+        }),
       });
       setEditing(false);
       router.refresh();
@@ -77,7 +85,7 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
   if (editing) {
     return (
       <div className="bg-[var(--sidebar-hover)] rounded-xl p-4 border border-[var(--primary)]/30 space-y-3">
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-medium mb-1">事件类型</label>
             <select value={formData.eventType} onChange={(e) => {
@@ -93,12 +101,17 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
             <input type="date" value={formData.date} onChange={(e) => setFormData((p) => ({ ...p, date: e.target.value }))}
               className="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] text-xs" />
           </div>
-          <div className="sm:col-span-2">
+          <div>
+            <label className="block text-xs font-medium mb-1">时间</label>
+            <input type="time" value={formData.time} onChange={(e) => setFormData((p) => ({ ...p, time: e.target.value }))}
+              className="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] text-xs" />
+          </div>
+          <div className="sm:col-span-3">
             <label className="block text-xs font-medium mb-1">标题</label>
             <input type="text" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
               className="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] text-xs" />
           </div>
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-3">
             <label className="block text-xs font-medium mb-1">描述</label>
             <textarea rows={2} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
               className="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] text-xs resize-none" />
@@ -154,7 +167,7 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
 
       <div className="flex items-center gap-1 mt-2 text-[11px] text-[var(--muted)]">
         <CalIcon className="w-3 h-3" />
-        {format.dateTime(event.date)}
+        {format.dateTimeOptional(event.date)}
         {event.gap && <span className="ml-1 opacity-60">({event.gap})</span>}
       </div>
     </div>

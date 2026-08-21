@@ -15,6 +15,7 @@ export default function ResumePDFViewer({ file }: { file: string }) {
   const fitScaleRef = useRef<number>(1);
   const [zoom, setZoom] = useState(55);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [retryKey, setRetryKey] = useState(0);
 
   const ZOOM_MIN = 30;
   const ZOOM_MAX = 150;
@@ -58,7 +59,7 @@ export default function ResumePDFViewer({ file }: { file: string }) {
       (viewerRef.current as unknown as { destroy?: () => void } | null)?.destroy?.();
       viewerRef.current = null;
     };
-  }, [file]);
+  }, [file, retryKey]);
 
   // 缩放变化 → 更新 viewer 缩放（100% = 铺满容器宽度）
   useEffect(() => {
@@ -118,14 +119,25 @@ export default function ResumePDFViewer({ file }: { file: string }) {
         {status === "error" && (
           <div className="absolute inset-0 bg-[var(--background)] flex flex-col items-center justify-center gap-2">
             <p className="text-sm text-[var(--muted)]">简历加载失败</p>
-            <a
-              href={file}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-[var(--primary)] hover:underline"
-            >
-              点击在新窗口查看简历 →
-            </a>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+              <a href={file} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-[var(--primary)] hover:underline">
+                在新窗口查看
+              </a>
+              <a href={file} download
+                className="text-xs text-[var(--primary)] hover:underline">
+                下载简历
+              </a>
+              <button
+                onClick={() => {
+                  setStatus("loading");
+                  setRetryKey((k) => k + 1);
+                }}
+                className="text-xs text-[var(--muted)] hover:text-[var(--primary)]"
+              >
+                重新加载
+              </button>
+            </div>
           </div>
         )}
       </div>

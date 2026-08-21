@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { STATUS_CONFIG } from "@/lib/utils";
 import { computeEffectiveStatus } from "@/lib/application-stages";
 
+// 数据分析实时反映投递数据，禁止构建时静态预渲染
+export const dynamic = "force-dynamic";
+
 export default async function AnalyticsPage() {
   const [totalApplications, applications, user] = await Promise.all([
     prisma.application.count(),

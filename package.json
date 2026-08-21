@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
+    "@napi-rs/canvas": "^0.1.100",
     "@prisma/client": "^6.19.3",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
@@ -28,6 +29,7 @@
     "imapflow": "^1.4.7",
     "lucide-react": "^1.23.0",
     "mailparser": "^3.9.14",
+    "mammoth": "^1.12.1",
     "next": "16.2.10",
     "node-cron": "^4.6.0",
     "pdf-parse": "^2.4.5",

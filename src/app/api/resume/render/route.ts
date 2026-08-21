@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import { renderPageAsImage, getDocumentProxy } from "unpdf";
 import { readFile } from "fs/promises";
 import { join } from "path";
-
-// Node 端渲染 PDF 页面需要 @napi-rs/canvas（原生模块，已在 next.config 设为 external）
-const canvasImport = () => import("@napi-rs/canvas");
+import { pdfPageCount, pdfToImages } from "@/lib/pdf-render";
 
 /**
  * 简历 PDF 页面渲染接口
@@ -25,14 +22,17 @@ export async function GET(request: Request) {
 
     const filePath = join(process.cwd(), "public", "resumes", file);
     const buffer = await readFile(filePath);
-    const data = new Uint8Array(buffer);
 
     if (info) {
-      const doc = await getDocumentProxy(data);
-      return NextResponse.json({ totalPages: doc.numPages });
+      const totalPages = await pdfPageCount(buffer);
+      return NextResponse.json({ totalPages });
     }
 
-    const png = await renderPageAsImage(data, page, { scale, canvasImport });
+    const images = await pdfToImages(buffer, scale);
+    const png = images[page - 1];
+    if (!png) {
+      return NextResponse.json({ error: "页码超出范围" }, { status: 400 });
+    }
     return new NextResponse(Buffer.from(png), {
       headers: {
         "Content-Type": "image/png",

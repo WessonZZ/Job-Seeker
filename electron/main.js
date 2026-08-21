@@ -191,6 +191,24 @@ function createWindow() {
 
   mainWindow.loadURL(APP_URL);
 
+  // 新窗口（window.open / target=_blank）：打开简历 PDF 或外部链接时，
+  // 用独立窗口加载目标 URL 并启用 PDF 插件，避免把整个应用当成缩小版打开。
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    return {
+      action: "allow",
+      overrideBrowserWindowOptions: {
+        width: 1100,
+        height: 900,
+        autoHideMenuBar: true,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          plugins: true, // 启用 Chromium PDF 查看器，直接渲染简历 PDF
+        },
+      },
+    };
+  });
+
   // 页面加载完成后，按系统外观应用主题（Electron 专用兜底，可靠生效）
   mainWindow.webContents.on("did-finish-load", () => {
     setTimeout(applyNativeTheme, 120);

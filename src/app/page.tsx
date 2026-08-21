@@ -19,6 +19,9 @@ import {
   deepestStageIndex,
 } from "@/lib/application-stages";
 
+// 仪表盘实时反映投递数据，禁止构建时静态预渲染
+export const dynamic = "force-dynamic";
+
 async function getStats() {
   const [
     todayJobs,
