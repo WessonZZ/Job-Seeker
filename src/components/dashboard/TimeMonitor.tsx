@@ -11,10 +11,10 @@ export interface TimePoint {
 }
 
 const SERIES = [
-  { key: "applied", label: "投递", color: "#e62429" },
-  { key: "oa", label: "笔试", color: "#d4a017" },
-  { key: "interview", label: "面试", color: "#1f51a8" },
-  { key: "offer", label: "Offer", color: "#1b9e4b" },
+  { key: "applied", label: "投递", color: "#3b82f6" },
+  { key: "oa", label: "笔试", color: "#f59e0b" },
+  { key: "interview", label: "面试", color: "#8b5cf6" },
+  { key: "offer", label: "Offer", color: "#10b981" },
 ] as const;
 
 type Mode = "month" | "week";
@@ -67,8 +67,7 @@ export default function TimeMonitor({
   );
 
   return (
-    <div className="animate-float-slow h-full">
-    <div className="hover-float bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 h-full">
+    <section className="card p-5 h-full">
       {/* 标题 */}
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-base font-semibold">投递趋势监控</h2>
@@ -151,7 +150,6 @@ export default function TimeMonitor({
           </div>
         ))}
       </div>
-    </div>
-    </div>
+    </section>
   );
 }

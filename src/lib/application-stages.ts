@@ -1,5 +1,3 @@
-import type { HeroKey } from "@/components/HeroBadge";
-
 /**
  * 求职阶段模型：投递 → 笔试 → 面试 → Offer
  * 用于 Dashboard 的转化漏斗与公司进度条。
@@ -8,31 +6,20 @@ import type { HeroKey } from "@/components/HeroBadge";
 export const STAGE_ORDER = ["applied", "oa", "interview", "offer"] as const;
 export type StageKey = (typeof STAGE_ORDER)[number];
 
-/** 每个阶段的展示信息 + 对应英雄 */
-export const STAGE_META: Record<StageKey, { label: string; hero: HeroKey }> = {
-  applied: { label: "已投递", hero: "IM" },
-  oa: { label: "笔试", hero: "THOR" },
-  interview: { label: "面试", hero: "CAP" },
-  offer: { label: "Offer", hero: "HULK" },
+/** 每个阶段的展示信息 */
+export const STAGE_META: Record<StageKey, { label: string }> = {
+  applied: { label: "已投递" },
+  oa: { label: "笔试" },
+  interview: { label: "面试" },
+  offer: { label: "Offer" },
 };
 
-/** 英雄专属渐变色（服务端/客户端通用） */
-export const HERO_COLORS: Record<HeroKey, { from: string; to: string }> = {
-  IM: { from: "#e62429", to: "#f5b301" },
-  SP: { from: "#e62429", to: "#1f51a8" },
-  CAP: { from: "#1f51a8", to: "#e62429" },
-  HULK: { from: "#1b9e4b", to: "#8fe04e" },
-  THOR: { from: "#d4a017", to: "#00b7ff" },
-  BP: { from: "#5e2c91", to: "#c9a54a" },
-  BW: { from: "#7c1f1f", to: "#3b3b3b" },
-};
-
-/** 每个阶段的颜色（英雄渐变） */
+/** 每个阶段的语义色（投递蓝 / 笔试琥珀 / 面试紫 / Offer 绿） */
 export const STAGE_COLORS: Record<StageKey, { from: string; to: string }> = {
-  applied: HERO_COLORS.IM,
-  oa: HERO_COLORS.THOR,
-  interview: HERO_COLORS.CAP,
-  offer: HERO_COLORS.HULK,
+  applied: { from: "#3b82f6", to: "#60a5fa" },
+  oa: { from: "#d97706", to: "#f59e0b" },
+  interview: { from: "#7c3aed", to: "#a78bfa" },
+  offer: { from: "#059669", to: "#34d399" },
 };
 
 /** 阶段权重（用于求"到达深度"） */

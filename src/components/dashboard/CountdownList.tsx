@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import HeroBadge, { type HeroKey } from "@/components/HeroBadge";
 
 export interface CountdownItem {
   id: string;
@@ -14,12 +13,12 @@ export interface CountdownItem {
   date: string; // ISO
 }
 
-const EVENT_META: Record<string, { label: string; hero: HeroKey }> = {
-  oa: { label: "笔试", hero: "THOR" },
-  test: { label: "笔试", hero: "THOR" },
-  interview: { label: "面试", hero: "CAP" },
-  interview_pending: { label: "待预约面试", hero: "CAP" },
-  followup: { label: "跟进", hero: "BW" },
+const EVENT_META: Record<string, { label: string; color: string }> = {
+  oa: { label: "笔试", color: "#d97706" },
+  test: { label: "笔试", color: "#d97706" },
+  interview: { label: "面试", color: "#7c3aed" },
+  interview_pending: { label: "待预约面试", color: "#7c3aed" },
+  followup: { label: "跟进", color: "#475569" },
 };
 
 function formatRemaining(ms: number): { text: string; ended: boolean } {
@@ -55,7 +54,7 @@ export default function CountdownList({ items }: { items: CountdownItem[] }) {
   return (
     <div className="grid sm:grid-cols-2 gap-3">
       {items.map((item) => {
-        const meta = EVENT_META[item.eventType] ?? { label: item.title || "阶段", hero: "BW" as HeroKey };
+        const meta = EVENT_META[item.eventType] ?? { label: item.title || "阶段", color: "#64748b" };
         const diff = new Date(item.date).getTime() - now;
         const { text, ended } = formatRemaining(diff);
         const when = new Date(item.date).toLocaleString("zh-CN", {
@@ -69,20 +68,23 @@ export default function CountdownList({ items }: { items: CountdownItem[] }) {
           <Link
             key={item.id}
             href={`/journey/applications/${item.applicationId}`}
-            className={`group flex items-center gap-3 rounded-xl border p-3 transition-opacity ${
+            className={`group flex items-center gap-3 rounded-xl border p-3 transition-all ${
               ended
                 ? "opacity-60 border-[var(--border)]"
-                : "border-[var(--border)] bg-[var(--card)]"
-            } hover:shadow-sm`}
+                : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]/40 hover:shadow-sm"
+            }`}
             title="查看该投递详情"
           >
-            <HeroBadge hero={meta.hero} size="sm" />
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ background: meta.color }}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm truncate group-hover:text-[var(--primary)] transition-colors">
                   {item.companyName}
                 </span>
-                <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-[var(--sidebar-active)] text-[var(--primary)]">
+                <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-[var(--sidebar-active)] text-[var(--muted)]">
                   {meta.label}
                 </span>
               </div>
@@ -95,7 +97,7 @@ export default function CountdownList({ items }: { items: CountdownItem[] }) {
                 ended ? "text-[var(--muted)]" : "text-[var(--primary)]"
               }`}
             >
-              <div className="font-comic text-lg font-bold leading-none">
+              <div className="text-lg font-bold leading-none tabular-nums tracking-tight">
                 {text}
               </div>
               <div className="text-[10px] text-[var(--muted)] mt-1">倒计时</div>

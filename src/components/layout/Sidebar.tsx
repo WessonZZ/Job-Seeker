@@ -4,7 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import HeroBadge, { type HeroKey } from "@/components/HeroBadge";
+import type { LucideIcon } from "lucide-react";
+import {
+  LayoutDashboard,
+  Newspaper,
+  Building2,
+  BriefcaseBusiness,
+  Bot,
+  Mail,
+  Settings,
+} from "lucide-react";
 
 interface NavChild {
   href: string;
@@ -14,28 +23,49 @@ interface NavChild {
 interface NavItem {
   href: string;
   label: string;
-  hero: HeroKey;
+  icon: LucideIcon;
   children?: NavChild[];
 }
 
-const navItems: NavItem[] = [
-  { href: "/", label: "Dashboard", hero: "IM" },
-  { href: "/news", label: "每日资讯", hero: "SP" },
-  { href: "/industries", label: "行业岗位", hero: "CAP" },
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
-    href: "/journey",
-    label: "求职历程",
-    hero: "HULK",
-    children: [
-      { href: "/journey/applications", label: "投递记录" },
-      { href: "/journey/profile", label: "个人信息" },
-      { href: "/journey/analytics", label: "数据分析" },
-      { href: "/journey/calendar", label: "面试日历" },
+    label: "概览",
+    items: [{ href: "/", label: "总览", icon: LayoutDashboard }],
+  },
+  {
+    label: "求职追踪",
+    items: [
+      { href: "/news", label: "每日资讯", icon: Newspaper },
+      { href: "/industries", label: "行业岗位", icon: Building2 },
     ],
   },
-  { href: "/scraper", label: "爬虫管理", hero: "THOR" },
-  { href: "/journey/email-sync", label: "邮件同步", hero: "BP" },
-  { href: "/settings", label: "设置", hero: "BW" },
+  {
+    label: "求职历程",
+    items: [
+      {
+        href: "/journey",
+        label: "历程总览",
+        icon: BriefcaseBusiness,
+        children: [
+          { href: "/journey/applications", label: "投递记录" },
+          { href: "/journey/profile", label: "个人信息" },
+          { href: "/journey/analytics", label: "数据分析" },
+          { href: "/journey/calendar", label: "面试日历" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "工具",
+    items: [
+      { href: "/scraper", label: "爬虫管理", icon: Bot },
+      { href: "/journey/email-sync", label: "邮件同步", icon: Mail },
+    ],
+  },
+  {
+    label: "系统",
+    items: [{ href: "/settings", label: "设置", icon: Settings }],
+  },
 ];
 
 const MIN_WIDTH = 110;
@@ -44,28 +74,17 @@ const DEFAULT_WIDTH = 150;
 const COLLAPSED_WIDTH = 64;
 const WIDTH_KEY = "jobseeker-sidebar-width";
 
-/** 复仇者联盟 "A" 标志 */
-function AvengersLogo() {
+/** 品牌标识：青绿渐变圆角方块 + "成长阶梯"（投递 → Offer 的三级跃升） */
+function BrandLogo() {
   return (
     <div
-      className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-md"
-      style={{
-        background: "linear-gradient(135deg, #e62429 0%, #f5b301 100%)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35), 0 2px 6px rgba(230,36,41,0.4)",
-      }}
+      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+      style={{ background: "linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)" }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        className="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <path d="M7.5 17.5 L12 6 L16.5 17.5" />
-        <path d="M9.3 13.6 L14.7 13.6" />
+      <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="currentColor" aria-hidden>
+        <rect x="2" y="14" width="5" height="6" rx="1" />
+        <rect x="9.5" y="10" width="5" height="10" rx="1" opacity="0.82" />
+        <rect x="17" y="5" width="5" height="15" rx="1" opacity="0.62" />
       </svg>
     </div>
   );
@@ -74,9 +93,7 @@ function AvengersLogo() {
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>(
-    "/journey"
-  );
+  const [expandedSection, setExpandedSection] = useState<string | null>("/journey");
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -117,24 +134,32 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col border-r border-[var(--border)] backdrop-blur-xl bg-[var(--sidebar)] ${
+      className={`relative flex flex-col border-r border-[var(--border)] bg-[var(--sidebar)] backdrop-blur-xl ${
         isResizing ? "" : "transition-[width] duration-200"
       }`}
       style={{ width: collapsed ? COLLAPSED_WIDTH : width }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 h-16 border-b border-[var(--border)]">
-        <AvengersLogo />
+      <div className="flex items-center gap-2.5 px-4 h-16 border-b border-[var(--border)]">
+        <BrandLogo />
         {!collapsed && (
-          <span className="font-semibold text-base whitespace-nowrap">
+          <span className="font-semibold text-[15px] whitespace-nowrap tracking-tight">
             求职助手
           </span>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 overflow-y-auto">
-        {navItems.map((item) => {
+      <nav className="flex-1 py-2 overflow-y-auto">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="mb-1">
+            {!collapsed && (
+              <p className="px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]/75 leading-none">
+                {group.label}
+              </p>
+            )}
+            {group.items.map((item) => {
+          const Icon = item.icon;
           const active = isActive(item.href);
           const hasChildren = item.children && item.children.length > 0;
           const isExpanded = expandedSection === item.href;
@@ -151,14 +176,12 @@ export default function Sidebar() {
                 onClick={(e) => {
                   if (hasChildren) {
                     e.preventDefault();
-                    setExpandedSection(
-                      isExpanded ? null : item.href
-                    );
+                    setExpandedSection(isExpanded ? null : item.href);
                   }
                 }}
                 title={collapsed ? item.label : undefined}
               >
-                <HeroBadge hero={item.hero} size="sm" />
+                <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.8} />
                 {!collapsed && (
                   <>
                     <span className="truncate">{item.label}</span>
@@ -167,6 +190,7 @@ export default function Sidebar() {
                         className={`w-4 h-4 ml-auto transition-transform ${
                           isExpanded ? "rotate-90" : ""
                         }`}
+                        strokeWidth={1.8}
                       />
                     )}
                   </>
@@ -175,14 +199,14 @@ export default function Sidebar() {
 
               {/* Submenu */}
               {!collapsed && hasChildren && isExpanded && (
-                <div className="ml-7 mt-1 space-y-1">
+                <div className="ml-[21px] mt-1 space-y-0.5 border-l border-[var(--border)] pl-2">
                   {item.children!.map((child) => {
                     const childActive = isActive(child.href);
                     return (
                       <Link
                         key={child.href}
                         href={child.href}
-                        className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                        className={`block px-2.5 py-1.5 rounded-md text-[13px] transition-colors ${
                           childActive
                             ? "bg-[var(--sidebar-active)] text-[var(--primary)] font-medium"
                             : "text-[var(--muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--foreground)]"
@@ -195,14 +219,17 @@ export default function Sidebar() {
                 </div>
               )}
             </div>
-          );
-        })}
+            );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Collapse button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center justify-center h-12 border-t border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+        aria-label={collapsed ? "展开侧栏" : "收起侧栏"}
       >
         {collapsed ? (
           <ChevronRight className="w-5 h-5" />

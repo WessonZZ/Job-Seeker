@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { STATUS_CONFIG } from "@/lib/utils";
 import { computeEffectiveStatus } from "@/lib/application-stages";
+import PageHeader from "@/components/layout/PageHeader";
 
 // 数据分析实时反映投递数据，禁止构建时静态预渲染
 export const dynamic = "force-dynamic";
@@ -59,12 +60,11 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">数据分析</h1>
-        <p className="text-[var(--muted)] mt-1">
-          投递趋势和面试转化分析
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Analytics"
+        title="数据分析"
+        sub="投递趋势和面试转化分析"
+      />
 
       {/* Conversion Funnel */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">

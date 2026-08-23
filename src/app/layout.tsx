@@ -41,10 +41,6 @@ export default function RootLayout({
       </head>
       <body className="h-screen flex overflow-hidden">
         <ThemeController />
-        <div className="bg-halftone" />
-        <div className="bg-energy" />
-        <div className="bg-vignette" />
-        <div className="bg-a-watermark" />
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0 relative z-10">
           <TopBar />

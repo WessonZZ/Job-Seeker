@@ -1,10 +1,9 @@
 "use client";
 
-import { Search, Sun, Moon } from "lucide-react";
+import { Search, Sun, Moon, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import HeroBadge from "@/components/HeroBadge";
 
 export default function TopBar() {
   const router = useRouter();
@@ -63,10 +62,12 @@ export default function TopBar() {
       {/* Profile link */}
       <Link
         href="/journey/profile"
-        className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--sidebar-hover)] transition-colors"
+        className="flex items-center gap-2 p-1.5 pr-2.5 rounded-lg hover:bg-[var(--sidebar-hover)] transition-colors"
         title="个人信息"
       >
-        <HeroBadge hero="BW" size="sm" />
+        <span className="w-7 h-7 rounded-full bg-[var(--sidebar-active)] flex items-center justify-center text-[var(--primary)]">
+          <User className="w-4 h-4" strokeWidth={1.8} />
+        </span>
         <span className="text-sm text-[var(--muted)] hidden sm:inline">个人</span>
       </Link>
     </header>

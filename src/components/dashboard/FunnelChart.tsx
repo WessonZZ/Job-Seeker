@@ -1,11 +1,9 @@
 import Link from "next/link";
-import HeroBadge, { type HeroKey } from "@/components/HeroBadge";
 import { STAGE_COLORS } from "@/lib/application-stages";
 
 export interface FunnelStage {
   key: string;
   label: string;
-  hero: HeroKey;
   count: number;
   /** 点击该级跳转的地址（投递记录筛选） */
   href: string;
@@ -24,8 +22,8 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
       {stages.map((stage, i) => {
         const colors =
           STAGE_COLORS[stage.key as keyof typeof STAGE_COLORS] ?? {
-            from: "#e62429",
-            to: "#f5b301",
+            from: "#3b82f6",
+            to: "#60a5fa",
           };
 
         // 梯形：上边缘半宽 ∝ 本级人数，下边缘半宽 ∝ 下一级人数（收窄成漏斗）
@@ -48,7 +46,10 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
           >
             {/* 标签 */}
             <div className="w-24 shrink-0 flex items-center gap-2">
-              <HeroBadge hero={stage.hero} size="sm" />
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ background: colors.from }}
+              />
               <div className="leading-tight">
                 <div className="text-sm font-medium group-hover:text-[var(--primary)] transition-colors">
                   {stage.label}
@@ -66,11 +67,10 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
                 {conv !== null ? ` · 转化 ${conv}%` : " · 起点"} · 点击查看
               </div>
               <div
-                className="h-10 transition-opacity group-hover:opacity-90"
+                className="h-10 transition-opacity group-hover:opacity-90 rounded"
                 style={{
                   clipPath: clip,
                   background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`,
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25)",
                 }}
               />
             </div>

@@ -7,6 +7,7 @@ import ResumeUpload from "./ResumeUpload";
 import EditableWorkExp from "./EditableWorkExp";
 import EditableProjectExp from "./EditableProjectExp";
 import AddProjectButton from "./AddProjectButton";
+import PageHeader from "@/components/layout/PageHeader";
 
 export default async function ProfilePage() {
   const user = await prisma.user.findFirst();
@@ -42,12 +43,11 @@ export default async function ProfilePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">个人信息</h1>
-        <p className="text-[var(--muted)] mt-1">
-          管理你的基本资料和工作经历
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Profile"
+        title="个人信息"
+        sub="管理你的基本资料和求职经历"
+      />
 
       <ProfileForm user={user} />
 

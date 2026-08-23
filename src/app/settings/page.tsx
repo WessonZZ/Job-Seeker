@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   Save, Trash2, Plug, CheckCircle2, AlertCircle, Loader2, Brain,
 } from "lucide-react";
@@ -123,10 +124,11 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">设置</h1>
-        <p className="text-[var(--muted)] mt-1">配置 LLM 服务，用于简历解析、爬虫与邮件分类</p>
-      </div>
+      <PageHeader
+        eyebrow="Settings"
+        title="设置"
+        sub="配置 LLM 服务，用于简历解析、爬虫与邮件分类"
+      />
 
       {/* 状态提示 */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">

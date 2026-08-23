@@ -181,7 +181,7 @@ function createWindow() {
     minHeight: 700,
     title: "求职助手",
     icon: APP_ICON,
-    backgroundColor: "#0b0b18", // 深色电影风底色，避免白屏闪烁
+    backgroundColor: "#060a10", // 深空底色，避免白屏闪烁
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

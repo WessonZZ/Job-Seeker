@@ -2,16 +2,18 @@ import {
   TrendingUp,
   Send,
   CalendarCheck,
-  Building,
+  Building2,
+  Newspaper,
+  BriefcaseBusiness,
 } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import HeroBadge, { type HeroKey } from "@/components/HeroBadge";
 import FunnelChart from "@/components/dashboard/FunnelChart";
 import CompanyProgress from "@/components/dashboard/CompanyProgress";
 import TimeMonitor, { type TimePoint } from "@/components/dashboard/TimeMonitor";
 import CountdownList from "@/components/dashboard/CountdownList";
 import FloatingCard from "@/components/dashboard/FloatingCard";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   STAGE_ORDER,
   STAGE_META,
@@ -61,19 +63,22 @@ async function getStats() {
   };
 }
 
-// ─────────────────────────────────────────────
-// Dashboard 数据分析（漏斗 / 公司进度 / 时间监控 / 倒计时）
-// ─────────────────────────────────────────────
-
 const COUNTDOWN_EVENTS = ["oa", "test", "interview", "interview_pending", "followup"];
 
-const HERO_POOL: HeroKey[] = ["IM", "CAP", "HULK", "THOR", "BP", "BW", "SP"];
+/** 公司首字母头像的柔和中性色调（按公司名确定性取色） */
+const COMPANY_TINTS = [
+  { from: "#5b6b8c", to: "#7d8aa8" }, // 石板蓝
+  { from: "#4a807d", to: "#6fa39f" }, // 灰青
+  { from: "#8a6aa8", to: "#a889c4" }, // 灰紫
+  { from: "#b07a4f", to: "#c99b74" }, // 暖褐
+  { from: "#5f7cc0", to: "#8aa1dc" }, // 蓝
+  { from: "#b05a6e", to: "#cc8293" }, // 玫瑰
+];
 
-/** 根据公司名确定性映射到一个英雄 */
-function heroForCompany(name: string): HeroKey {
+function tintForCompany(name: string) {
   let h = 0;
   for (const ch of name) h = (h * 31 + (ch.codePointAt(0) ?? 0)) % 997;
-  return HERO_POOL[h % HERO_POOL.length];
+  return COMPANY_TINTS[h % COMPANY_TINTS.length];
 }
 
 function startOfWeek(d: Date): Date {
@@ -149,7 +154,6 @@ export default async function HomePage() {
     return {
       key,
       label: STAGE_META[key].label,
-      hero: STAGE_META[key].hero,
       count: ids.length,
       href: `/journey/applications?source=dashboard&ids=${ids.length ? ids.join(",") : "__none__"}`,
     };
@@ -167,7 +171,7 @@ export default async function HomePage() {
       return {
         name,
         logo: companyMap.get(name)?.logo ?? null,
-        hero: heroForCompany(name),
+        tint: tintForCompany(name),
         href: `/journey/applications?source=dashboard&ids=${ids.length ? ids.join(",") : "__none__"}`,
         positions: list.map((a) => ({
           id: a.id,
@@ -237,28 +241,28 @@ export default async function HomePage() {
     title: string;
     description: string;
     href: string;
-    hero: HeroKey;
+    icon: typeof Newspaper;
     count: string;
   }[] = [
     {
       title: "每日工作资讯",
       description: "查看最新发布的招聘信息",
       href: "/news",
-      hero: "SP",
+      icon: Newspaper,
       count: `${stats.todayJobs} 条今日更新`,
     },
     {
       title: "行业岗位信息",
       description: "按行业浏览公司和职位",
       href: "/industries",
-      hero: "CAP",
+      icon: Building2,
       count: `${stats.totalCompanies} 家公司 · ${stats.totalJobs} 个职位`,
     },
     {
       title: "个人求职历程",
       description: "管理投递记录和面试进程",
       href: "/journey",
-      hero: "HULK",
+      icon: BriefcaseBusiness,
       count: `${stats.totalApplications} 条投递记录`,
     },
   ];
@@ -278,41 +282,39 @@ export default async function HomePage() {
       label: "今日新岗",
       value: stats.todayJobs,
       icon: TrendingUp,
-      color: "text-blue-500",
+      color: "text-blue-500 bg-blue-500/10",
       href: "/news",
     },
     {
       label: "进行中投递",
       value: stats.activeApplications,
       icon: Send,
-      color: "text-emerald-500",
+      color: "text-emerald-600 bg-emerald-500/10",
       href: idsParam(activeIds),
     },
     {
       label: "面试中",
       value: stats.interviewCount,
       icon: CalendarCheck,
-      color: "text-amber-500",
+      color: "text-amber-600 bg-amber-500/10",
       href: idsParam(interviewIds),
     },
     {
       label: "公司总数",
       value: stats.totalCompanies,
-      icon: Building,
-      color: "text-purple-500",
+      icon: Building2,
+      color: "text-violet-600 bg-violet-500/10",
       href: "/industries",
     },
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-[var(--muted)] mt-1">
-          欢迎回来，这是你的求职总览
-        </p>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-6">
+      <PageHeader
+        eyebrow="Overview"
+        title="求职总览"
+        sub="欢迎回来，这是你的求职战况"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -322,16 +324,18 @@ export default async function HomePage() {
             <Link
               key={stat.label}
               href={stat.href}
-              className="group hover-float bg-[var(--card)] border border-[var(--border)] rounded-xl p-4"
+              className="group bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 transition-colors hover:border-[var(--primary)]/40 hover:shadow-sm"
               title={`查看详情 →`}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider group-hover:text-[var(--primary)] transition-colors">
+                <span className="text-xs font-medium text-[var(--muted)] group-hover:text-[var(--primary)] transition-colors">
                   {stat.label}
                 </span>
-                <Icon className={`w-5 h-5 ${stat.color}`} />
+                <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.color}`}>
+                  <Icon className="w-4 h-4" />
+                </span>
               </div>
-              <p className="text-3xl font-bold group-hover:text-[var(--primary)] transition-colors">
+              <p className="text-3xl font-bold tabular-nums tracking-tight">
                 {stat.value}
               </p>
             </Link>
@@ -339,63 +343,47 @@ export default async function HomePage() {
         })}
       </div>
 
-      {/* Quick Links */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">快速入口</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          {quickLinks.map((link) => {
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="group hover-float bg-[var(--card)] border border-[var(--border)] rounded-xl p-5"
-              >
-                <div className="mb-3">
-                  <HeroBadge hero={link.hero} size="lg" />
-                </div>
-                <h3 className="font-semibold group-hover:text-[var(--primary)] transition-colors">
+      {/* 快捷入口带 */}
+      <div className="card p-2 grid sm:grid-cols-3 gap-1">
+        {quickLinks.map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--sidebar-hover)] group transition-colors"
+            >
+              <span className="w-9 h-9 rounded-lg bg-[var(--sidebar-active)] flex items-center justify-center text-[var(--primary)] shrink-0">
+                <Icon className="w-5 h-5" strokeWidth={1.8} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate group-hover:text-[var(--primary)] transition-colors">
                   {link.title}
-                </h3>
-                <p className="text-sm text-[var(--muted)] mt-1">
-                  {link.description}
-                </p>
-                <p className="text-xs text-[var(--primary)] mt-2">
-                  {link.count}
-                </p>
-              </Link>
-            );
-          })}
+                </div>
+                <div className="text-xs text-[var(--muted)] mt-0.5 truncate">{link.count}</div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* 关注区：漏斗（宽）+ 倒计时（窄） */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <FloatingCard title="求职转化漏斗" badge="投递 → Offer">
+            <FunnelChart stages={funnel} />
+          </FloatingCard>
         </div>
-      </div>
-
-      {/* 求职转化漏斗 + 投递趋势监控 */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <FloatingCard
-          title="求职转化漏斗"
-          badge="投递 → Offer"
-          delay={0}
-        >
-          <FunnelChart stages={funnel} />
+        <FloatingCard title="阶段倒计时" badge="笔试 / 面试">
+          <CountdownList items={countdown} />
         </FloatingCard>
-
-        <TimeMonitor months={months} weeks={weeks} />
       </div>
 
-      {/* 阶段倒计时 */}
-      <FloatingCard
-        title="阶段倒计时"
-        badge="进行中的笔试 / 面试"
-        delay={0.7}
-      >
-        <CountdownList items={countdown} />
-      </FloatingCard>
+      {/* 投递趋势 */}
+      <TimeMonitor months={months} weeks={weeks} />
 
       {/* 公司岗位进度 */}
-      <FloatingCard
-        title="公司岗位进度"
-        badge={`${companyProgress.length} 家公司`}
-        delay={1.2}
-      >
+      <FloatingCard title="公司岗位进度" badge={`${companyProgress.length} 家公司`}>
         <CompanyProgress items={companyProgress} />
       </FloatingCard>
     </div>

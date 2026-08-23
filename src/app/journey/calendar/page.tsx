@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import InterviewCalendar from "./InterviewCalendar";
+import PageHeader from "@/components/layout/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +28,11 @@ export default async function CalendarPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">面试日历</h1>
-        <p className="text-[var(--muted)] mt-1">
-          可视化查看各岗位的面试安排，共 {events.length} 个面试事件
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Interviews"
+        title="面试日历"
+        sub={`可视化查看各岗位的面试安排，共 ${events.length} 个面试事件`}
+      />
 
       <InterviewCalendar eventsByDate={Object.fromEntries(eventsByDate)} />
     </div>

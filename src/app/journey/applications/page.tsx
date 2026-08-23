@@ -6,6 +6,7 @@ import {
   Plus, ChevronRight, LayoutList, Building2, Clock,
 } from "lucide-react";
 import DeleteApplicationButton from "./DeleteApplicationButton";
+import PageHeader from "@/components/layout/PageHeader";
 
 interface Props {
   searchParams: Promise<{ status?: string; view?: string; ids?: string; source?: string }>;
@@ -63,24 +64,25 @@ export default async function ApplicationsPage({ searchParams }: Props) {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">投递记录</h1>
-          <p className="text-[var(--muted)] mt-1">
-            {params.ids
-              ? params.source === "email"
-                ? "邮件同步结果"
-                : `共 ${applications.length} 条记录`
-              : currentView === "list"
-                ? `共 ${applications.length} 条记录`
-                : `${companyNames.length} 家公司 · ${applications.length} 条投递`}
-          </p>
-        </div>
-        <Link href="/journey/applications/new"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-sm font-medium hover:bg-[var(--primary-hover)]">
-          <Plus className="w-4 h-4" />新增投递
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Applications"
+        title="投递记录"
+        sub={
+          params.ids
+            ? params.source === "email"
+              ? "邮件同步结果"
+              : `共 ${applications.length} 条记录`
+            : currentView === "list"
+              ? `共 ${applications.length} 条记录`
+              : `${companyNames.length} 家公司 · ${applications.length} 条投递`
+        }
+        actions={
+          <Link href="/journey/applications/new"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-sm font-medium hover:bg-[var(--primary-hover)]">
+            <Plus className="w-4 h-4" />新增投递
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">

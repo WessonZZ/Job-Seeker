@@ -4,9 +4,7 @@ import {
   STAGE_META,
   STAGE_COLORS,
   STAGE_WEIGHT,
-  HERO_COLORS,
 } from "@/lib/application-stages";
-import type { HeroKey } from "@/components/HeroBadge";
 
 export interface CompanyPosition {
   id: string;
@@ -17,21 +15,21 @@ export interface CompanyPosition {
 export interface CompanyProgressItem {
   name: string;
   logo: string | null;
-  hero: HeroKey;
+  tint: { from: string; to: string };
   positions: CompanyPosition[];
   /** 点击公司头跳转（该公司全部岗位） */
   href: string;
 }
 
-/** 公司 logo：有 logo 显示图片，否则用英雄渐变 + 首字母圆形徽标 */
+/** 公司 logo：有 logo 显示图片，否则用柔和色调 + 首字母圆形徽标 */
 function CompanyLogo({
   name,
   logo,
-  hero,
+  tint,
 }: {
   name: string;
   logo: string | null;
-  hero: HeroKey;
+  tint: { from: string; to: string };
 }) {
   if (logo) {
     return (
@@ -43,14 +41,12 @@ function CompanyLogo({
       />
     );
   }
-  const c = HERO_COLORS[hero] ?? HERO_COLORS.IM;
   return (
     <div
       className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
       style={{
-        background: `linear-gradient(135deg, ${c.from} 0%, ${c.to} 100%)`,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.3)",
-        textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+        background: `linear-gradient(135deg, ${tint.from} 0%, ${tint.to} 100%)`,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25)",
       }}
     >
       {name.charAt(0)}
@@ -111,7 +107,7 @@ export default function CompanyProgress({
             className="flex items-center gap-3 py-1 group"
             title="查看该公司的全部投递"
           >
-            <CompanyLogo name={company.name} logo={company.logo} hero={company.hero} />
+            <CompanyLogo name={company.name} logo={company.logo} tint={company.tint} />
             <span className="text-sm font-semibold group-hover:text-[var(--primary)] transition-colors">
               {company.name}
             </span>
