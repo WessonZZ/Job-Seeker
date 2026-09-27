@@ -44,7 +44,7 @@ export default function AddTimelineEvent({
     title: "",
     description: "",
     date: format.dateShort(new Date()),
-    time: "",
+    time: format.clock(new Date()),
   });
 
   // 事件类型变化时自动填充标题
@@ -80,7 +80,7 @@ export default function AddTimelineEvent({
           title: "备注",
           description: "",
           date: format.dateShort(new Date()),
-          time: "",
+          time: format.clock(new Date()),
         });
         setOpen(false);
         router.refresh();

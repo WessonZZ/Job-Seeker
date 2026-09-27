@@ -46,7 +46,7 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
     title: event.title,
     description: event.description || "",
     date: format.dateShort(initialEventDate),
-    time: hasClockTime(initialEventDate) ? format.clock(initialEventDate) : "",
+    time: hasClockTime(initialEventDate) ? format.clock(initialEventDate) : format.clock(new Date()),
   });
 
   const eventConfig = EVENT_CONFIG[event.eventType as keyof typeof EVENT_CONFIG];

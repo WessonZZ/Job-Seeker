@@ -5,10 +5,10 @@ import PageHeader from "@/components/layout/PageHeader";
 export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
-  // 获取所有面试相关的时间线事件
+  // 获取所有面试 / 在线笔试相关的时间线事件
   const events = await prisma.timelineEvent.findMany({
     where: {
-      eventType: { in: ["interview", "interview_pending"] },
+      eventType: { in: ["interview", "interview_pending", "oa", "test"] },
     },
     include: {
       application: {
@@ -31,7 +31,7 @@ export default async function CalendarPage() {
       <PageHeader
         eyebrow="Interviews"
         title="面试日历"
-        sub={`可视化查看各岗位的面试安排，共 ${events.length} 个面试事件`}
+        sub={`可视化查看各岗位的面试与在线笔试安排，共 ${events.length} 个事件`}
       />
 
       <InterviewCalendar eventsByDate={Object.fromEntries(eventsByDate)} />

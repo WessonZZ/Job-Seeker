@@ -10,6 +10,7 @@ export interface CompanyPosition {
   id: string;
   position: string;
   stageIndex: number;
+  result?: "rejected" | "ghosted" | null;
 }
 
 export interface CompanyProgressItem {
@@ -120,10 +121,15 @@ export default function CompanyProgress({
           <div className="ml-11 mt-1 space-y-0.5">
             {company.positions.map((pos) => {
               const meta =
-                STAGE_META[STAGE_ORDER[pos.stageIndex - 1] ?? "applied"];
-              const reached = STAGE_ORDER.slice(0, pos.stageIndex)
-                .map((k) => STAGE_META[k].label)
-                .join(" → ");
+                pos.stageIndex > 0
+                  ? STAGE_META[STAGE_ORDER[pos.stageIndex - 1] ?? "applied"]
+                  : { label: "待投递" };
+              const reached =
+                STAGE_ORDER.slice(0, pos.stageIndex)
+                  .map((k) => STAGE_META[k].label)
+                  .join(" → ") || "待投递";
+              const isRejected = pos.result === "rejected";
+              const isGhosted = pos.result === "ghosted";
               return (
                 <Link
                   key={pos.id}
@@ -137,15 +143,22 @@ export default function CompanyProgress({
                     </div>
                     <div className="mt-0.5 text-[var(--background)]/80">
                       进度：{reached}
+                      {isRejected ? " · 结果：被拒" : isGhosted ? " · 结果：无回应" : ""}
                     </div>
                   </div>
                   <span className="w-48 min-w-0 shrink-0 text-sm text-[var(--muted)] truncate group-hover:text-[var(--primary)] transition-colors">
                     {pos.position}
                   </span>
                   <StageBar stageIndex={pos.stageIndex} />
-                  <span className="w-16 shrink-0 text-right text-xs text-[var(--muted)]">
-                    {meta.label}
-                  </span>
+                  {isRejected || isGhosted ? (
+                    <span className={`w-16 shrink-0 text-right text-[11px] font-medium ${isRejected ? "text-red-500" : "text-[var(--muted)]"}`}>
+                      {isRejected ? "被拒" : "无回应"}
+                    </span>
+                  ) : (
+                    <span className="w-16 shrink-0 text-right text-xs text-[var(--muted)]">
+                      {meta.label}
+                    </span>
+                  )}
                 </Link>
               );
             })}

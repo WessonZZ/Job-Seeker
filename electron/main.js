@@ -23,6 +23,8 @@ const APP_ICON = path.join(ROOT, "src", "imgs", "icon-rounded.png");
 
 let serverProc = null;
 let mainWindow = null;
+let creatingWindow = false; // 防止并发/重复创建窗口
+app.isQuitting = false; // Cmd+Q 退出时置 true（区分"关闭窗口"与"退出应用"）
 
 /* ── 服务探测 ─────────────────────────────── */
 
@@ -228,6 +230,14 @@ function createWindow() {
     }
   });
 
+  // macOS：点关闭按钮仅隐藏窗口（不销毁），下次点 Dock 秒开；Cmd+Q 才真正退出
+  mainWindow.on("close", (e) => {
+    if (process.platform === "darwin" && !app.isQuitting) {
+      e.preventDefault();
+      mainWindow.hide();
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -259,12 +269,33 @@ async function ensureServer() {
   return await waitForServer();
 }
 
-/** 确保服务在线后打开窗口；失败返回 false */
+/** 打开（或复用）主窗口；已有窗口则聚焦，避免重复开窗 */
 async function openWindow() {
-  const ok = await ensureServer();
-  if (!ok) return false;
-  createWindow();
-  return true;
+  // 已有窗口 → 直接显示并聚焦
+  const existing = BrowserWindow.getAllWindows()[0];
+  if (existing && !existing.isDestroyed()) {
+    if (existing.isMinimized()) existing.restore();
+    existing.show();
+    existing.focus();
+    return true;
+  }
+  if (creatingWindow) return true; // 正在创建，避免并发重复开窗
+  creatingWindow = true;
+  try {
+    const ok = await ensureServer();
+    if (!ok) return false;
+    // 等待期间可能已被创建，二次确认
+    const race = BrowserWindow.getAllWindows()[0];
+    if (race && !race.isDestroyed()) {
+      race.show();
+      race.focus();
+      return true;
+    }
+    createWindow();
+    return true;
+  } finally {
+    creatingWindow = false;
+  }
 }
 
 /** 服务健康检查：检测到服务中断则自动重启并刷新窗口 */
@@ -291,13 +322,8 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    } else {
-      // 窗口已关闭（持久化模式）：再次启动应重新打开窗口，而不是无反馈
-      openWindow();
-    }
+    // 已有窗口则聚焦，否则创建（openWindow 内部已做去重）
+    openWindow();
   });
 
   app.whenReady().then(async () => {
@@ -349,23 +375,27 @@ if (!gotLock) {
     }
   });
 
-  // macOS 点击 Dock 图标重新唤起窗口（服务不在线会自动拉起并刷新）
-  app.on("activate", async () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+  // macOS 点击 Dock 图标：立即显示/聚焦窗口，服务检查放后台不阻塞
+  app.on("activate", () => {
+    const w = BrowserWindow.getAllWindows()[0];
+    if (!w || w.isDestroyed()) {
       openWindow();
-    } else {
-      const w = BrowserWindow.getAllWindows()[0];
-      if (w.isMinimized()) w.restore();
-      w.focus();
-      // 服务不在线则拉起并刷新窗口（自愈，避免黑屏）
-      if (!(await isServerUp())) {
-        const ok = await ensureServer();
-        if (ok) w.webContents.reload();
-      }
+      return;
     }
+    if (w.isMinimized()) w.restore();
+    w.show();
+    w.focus();
+    // 后台静默检查服务，不在线则拉起并刷新（自愈，避免黑屏）
+    isServerUp().then((up) => {
+      if (up) return;
+      ensureServer().then((ok) => {
+        if (ok && w && !w.isDestroyed()) w.webContents.reload();
+      });
+    });
   });
 
   app.on("before-quit", () => {
+    app.isQuitting = true; // 允许窗口真正关闭
     killServer();
   });
 }

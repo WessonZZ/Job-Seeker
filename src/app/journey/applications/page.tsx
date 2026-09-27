@@ -14,7 +14,8 @@ interface Props {
 
 export default async function ApplicationsPage({ searchParams }: Props) {
   const params = await searchParams;
-  const currentView = params.view === "company" ? "company" : "list";
+  // 默认按公司分组展示（列表需显式切换）
+  const currentView = params.view === "list" ? "list" : "company";
 
   // 拉取全部并计算"有效状态"（无回应按"投递超两周无进度"动态判定）
   const allApps = await prisma.application.findMany({

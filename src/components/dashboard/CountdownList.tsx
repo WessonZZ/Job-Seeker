@@ -52,7 +52,7 @@ export default function CountdownList({ items }: { items: CountdownItem[] }) {
   }
 
   return (
-    <div className="grid sm:grid-cols-2 gap-3">
+    <div className="grid gap-3">
       {items.map((item) => {
         const meta = EVENT_META[item.eventType] ?? { label: item.title || "阶段", color: "#64748b" };
         const diff = new Date(item.date).getTime() - now;
@@ -68,23 +68,22 @@ export default function CountdownList({ items }: { items: CountdownItem[] }) {
           <Link
             key={item.id}
             href={`/journey/applications/${item.applicationId}`}
-            className={`group flex items-center gap-3 rounded-xl border p-3 transition-all ${
+            className={`group flex items-center gap-3 w-full min-w-0 rounded-xl border p-3 transition-all ${
               ended
                 ? "opacity-60 border-[var(--border)]"
                 : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]/40 hover:shadow-sm"
             }`}
-            title="查看该投递详情"
           >
             <span
               className="w-2 h-2 rounded-full shrink-0"
               style={{ background: meta.color }}
             />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm truncate group-hover:text-[var(--primary)] transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-medium text-sm truncate min-w-0 group-hover:text-[var(--primary)] transition-colors">
                   {item.companyName}
                 </span>
-                <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-[var(--sidebar-active)] text-[var(--muted)]">
+                <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-[var(--sidebar-active)] text-[var(--muted)] whitespace-nowrap">
                   {meta.label}
                 </span>
               </div>
@@ -93,11 +92,11 @@ export default function CountdownList({ items }: { items: CountdownItem[] }) {
               </div>
             </div>
             <div
-              className={`text-right shrink-0 ${
+              className={`text-right shrink-0 whitespace-nowrap ml-2 ${
                 ended ? "text-[var(--muted)]" : "text-[var(--primary)]"
               }`}
             >
-              <div className="text-lg font-bold leading-none tabular-nums tracking-tight">
+              <div className="text-base md:text-lg font-bold leading-none tabular-nums tracking-tight">
                 {text}
               </div>
               <div className="text-[10px] text-[var(--muted)] mt-1">倒计时</div>

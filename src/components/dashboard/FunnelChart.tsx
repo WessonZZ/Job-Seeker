@@ -18,7 +18,7 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
   const max = Math.max(...stages.map((s) => s.count), 1);
 
   return (
-    <div className="space-y-1.5">
+    <div className="h-full flex flex-col gap-1.5">
       {stages.map((stage, i) => {
         const colors =
           STAGE_COLORS[stage.key as keyof typeof STAGE_COLORS] ?? {
@@ -41,7 +41,7 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
           <Link
             key={stage.key}
             href={stage.href}
-            className="group flex items-center gap-3 rounded-lg transition-colors"
+            className="group flex items-center gap-3 rounded-lg transition-colors flex-1 min-h-0"
             title={`查看该阶段的岗位 →`}
           >
             {/* 标签 */}
@@ -61,13 +61,13 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
             </div>
 
             {/* 对称梯形色条 + 悬停数据提示 */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative self-stretch min-w-0 flex items-center">
               <div className="chart-tooltip">
                 {stage.label} {stage.count} 个
                 {conv !== null ? ` · 转化 ${conv}%` : " · 起点"} · 点击查看
               </div>
               <div
-                className="h-10 transition-opacity group-hover:opacity-90 rounded"
+                className="w-full h-full max-h-[68px] transition-opacity group-hover:opacity-90 rounded"
                 style={{
                   clipPath: clip,
                   background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`,

@@ -26,6 +26,34 @@ interface Props {
 
 const WEEK_DAYS = ["一", "二", "三", "四", "五", "六", "日"];
 
+/** 事件类型 → 徽章文案与配色 */
+const EVENT_META: Record<string, { badge: string; cls: string }> = {
+  interview: { badge: "🤝 面试", cls: "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300" },
+  interview_pending: { badge: "📅 待预约", cls: "bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300" },
+  oa: { badge: "📝 笔试", cls: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300" },
+  test: { badge: "📝 笔试", cls: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300" },
+};
+
+function metaOf(ev: CalendarEvent) {
+  return EVENT_META[ev.eventType] ?? EVENT_META.interview;
+}
+
+/** 从面试标题提取轮次（一面/二面/终面/HR面…），无则回退标题或"面试" */
+function interviewRound(title: string): string {
+  const t = (title || "").trim();
+  const m = t.match(/([一二三四五六七八九十终初复HRhr]{1,4}面)/);
+  if (m) return m[1];
+  if (!t || t === "面试" || t === "待预约面试") return "面试";
+  return t.length > 8 ? `${t.slice(0, 8)}…` : t;
+}
+
+/** 日历格子上显示的短标签：面试→轮次，笔试→笔试 */
+function eventLabel(ev: CalendarEvent): string {
+  if (ev.eventType === "oa" || ev.eventType === "test") return "笔试";
+  if (ev.eventType === "interview_pending") return "待预约";
+  return interviewRound(ev.title);
+}
+
 export default function InterviewCalendar({ eventsByDate }: Props) {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -95,7 +123,7 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
           </button>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--muted)]">{totalEvents} 个面试事件</span>
+          <span className="text-xs text-[var(--muted)]">{totalEvents} 个面试/笔试</span>
           <button onClick={goToday} className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs hover:bg-[var(--sidebar-hover)] transition-colors">
             今天
           </button>
@@ -151,13 +179,9 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
                     {day.events.slice(0, maxShow).map((ev) => (
                       <div
                         key={ev.id}
-                        className={`px-1 py-0.5 rounded text-[10px] leading-tight truncate font-medium ${
-                          ev.eventType === "interview"
-                            ? "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300"
-                            : "bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
-                        }`}
+                        className={`px-1 py-0.5 rounded text-[10px] leading-tight truncate font-medium ${metaOf(ev).cls}`}
                       >
-                        {ev.application.companyName}
+                        {ev.application.companyName} · {eventLabel(ev)}
                       </div>
                     ))}
                     {day.events.length > maxShow && (
@@ -177,7 +201,7 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <CalendarDays className="w-5 h-5 text-[var(--primary)]" />
-          <h3 className="font-semibold">即将到来的面试</h3>
+          <h3 className="font-semibold">即将到来的面试 / 笔试</h3>
           {upcomingEvents.length > 0 && (
             <span className="text-xs text-[var(--muted)]">{upcomingEvents.length} 个安排</span>
           )}
@@ -185,7 +209,7 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
 
         {upcomingEvents.length === 0 ? (
           <p className="text-sm text-[var(--muted)] text-center py-4">
-            {monthPrefix <= todayStr() ? "本月没有未来的面试安排" : "该月暂无面试安排"}
+            {monthPrefix <= todayStr() ? "本月没有未来的面试/笔试安排" : "该月暂无安排"}
           </p>
         ) : (
           <div className="space-y-2">
@@ -198,12 +222,8 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
                   className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[var(--border)] hover:shadow-sm hover:border-[var(--primary)]/30 transition-all group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                      ev.eventType === "interview"
-                        ? "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300"
-                        : "bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
-                    }`}>
-                      {ev.eventType === "interview" ? "🤝面试" : "📅待预约"}
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${metaOf(ev).cls}`}>
+                      {metaOf(ev).badge}
                     </span>
                     <div className="min-w-0">
                       <div className="text-sm font-medium truncate group-hover:text-[var(--primary)] transition-colors">
@@ -238,7 +258,7 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
           </div>
 
           {selectedEvents.length === 0 ? (
-            <p className="text-sm text-[var(--muted)] text-center py-4">暂无面试安排</p>
+            <p className="text-sm text-[var(--muted)] text-center py-4">暂无安排</p>
           ) : (
             <div className="space-y-3">
               {selectedEvents.map((ev) => (
@@ -250,12 +270,8 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          ev.eventType === "interview"
-                            ? "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300"
-                            : "bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
-                        }`}>
-                          {ev.eventType === "interview" ? "🤝 面试" : "📅 待预约"}
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${metaOf(ev).cls}`}>
+                          {metaOf(ev).badge}
                         </span>
                         <span className="text-xs font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
                           {ev.application.companyName}
@@ -282,12 +298,12 @@ export default function InterviewCalendar({ eventsByDate }: Props) {
         </div>
       )}
 
-      {/* 无面试事件时 */}
+      {/* 无事件时 */}
       {totalEvents === 0 && (
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-12 text-center">
           <AlertCircle className="w-10 h-10 mx-auto mb-3 text-[var(--muted)] opacity-50" />
-          <p className="text-sm text-[var(--muted)]">暂无面试安排</p>
-          <p className="text-xs text-[var(--muted)] mt-1">添加面试时间线事件后，会在此处显示</p>
+          <p className="text-sm text-[var(--muted)]">暂无面试/笔试安排</p>
+          <p className="text-xs text-[var(--muted)] mt-1">添加面试或在线笔试时间线事件后，会在此处显示</p>
         </div>
       )}
     </div>

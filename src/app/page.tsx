@@ -19,6 +19,7 @@ import {
   STAGE_META,
   STAGE_WEIGHT,
   deepestStageIndex,
+  computeEffectiveStatus,
 } from "@/lib/application-stages";
 
 // 仪表盘实时反映投递数据，禁止构建时静态预渲染
@@ -121,6 +122,17 @@ async function getDashboardData() {
       a.status,
       evs.map((e) => e.eventType)
     );
+    // 被拒 / 无回应：用于公司进度里标出终态
+    const result: "rejected" | "ghosted" | null =
+      a.status === "rejected" || a.status === "rejected_by_company"
+        ? "rejected"
+        : computeEffectiveStatus({
+            status: a.status,
+            appliedDate: a.appliedDate,
+            eventTypes: evs.map((e) => e.eventType),
+          }) === "ghosted"
+          ? "ghosted"
+          : null;
     const oaDate =
       evs.find((e) => e.eventType === "oa" || e.eventType === "test")?.date ??
       (a.status === "oa" ? a.updatedAt : null);
@@ -131,7 +143,7 @@ async function getDashboardData() {
     const offerDate =
       evs.find((e) => e.eventType === "offer")?.date ??
       (a.status === "offer" ? a.updatedAt : null);
-    return { ...a, stageIndex, oaDate, interviewDate, offerDate };
+    return { ...a, stageIndex, result, oaDate, interviewDate, offerDate };
   });
 
   return { apps, events, companyMap };
@@ -177,6 +189,7 @@ export default async function HomePage() {
           id: a.id,
           position: a.position,
           stageIndex: a.stageIndex,
+          result: a.result,
         })),
       };
     })
@@ -370,11 +383,11 @@ export default async function HomePage() {
       {/* 关注区：漏斗（宽）+ 倒计时（窄） */}
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <FloatingCard title="求职转化漏斗" badge="投递 → Offer">
+          <FloatingCard title="求职转化漏斗" badge="投递 → Offer" className="h-full">
             <FunnelChart stages={funnel} />
           </FloatingCard>
         </div>
-        <FloatingCard title="阶段倒计时" badge="笔试 / 面试">
+        <FloatingCard title="阶段倒计时" badge="笔试 / 面试" className="h-full">
           <CountdownList items={countdown} />
         </FloatingCard>
       </div>
