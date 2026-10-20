@@ -3,6 +3,7 @@ import "../globals.css";
 import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import ThemeController from "@/components/layout/ThemeController";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "求职助手 - 秋招/实习求职记录",
@@ -40,14 +41,16 @@ export default function RootLayout({
         />
       </head>
       <body className="h-screen flex overflow-hidden">
-        <ThemeController />
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0 relative z-10">
-          <TopBar />
-          <main className="flex-1 overflow-y-auto p-6">
-            {children}
-          </main>
-        </div>
+        <ToastProvider>
+          <ThemeController />
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-w-0 relative z-10">
+            <TopBar />
+            <main className="flex-1 overflow-y-auto p-6">
+              {children}
+            </main>
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );

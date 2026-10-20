@@ -16,7 +16,15 @@
  */
 
 import type { ExtractedJob } from "./scraper-engine";
-import { getLLMConfig, type LLMConfig } from "@/lib/llm-config";
+import {
+  getLLMConfig,
+  hasRealKey,
+  resolveClaudeModel,
+  resolveDeepseekModel,
+  type LLMConfig,
+} from "@/lib/llm-config";
+import { fetchWithTimeout, LLM_TIMEOUT_MS } from "@/lib/http";
+import { parseLlmJson } from "@/lib/llm-json";
 
 const MAX_TEXT_LENGTH = 8000;
 const KEYWORDS = ["工程师", "开发", "算法", "产品", "运营", "设计", "校招", "实习"];
@@ -34,17 +42,6 @@ interface LLMResponse {
   jobs: LLMJobItem[];
   isCareerPage: boolean;
   note?: string;
-}
-
-/** 检查 API Key 是否真的配置了（不是占位符） */
-function hasRealKey(key: string | undefined): boolean {
-  if (!key) return false;
-  const trimmed = key.trim();
-  if (!trimmed) return false;
-  // 跳过占位符
-  if (trimmed === "sk-你的key" || trimmed === "sk-ant-你的key") return false;
-  if (trimmed.startsWith("${") || trimmed.startsWith("your_")) return false;
-  return true;
 }
 
 /**
@@ -127,7 +124,7 @@ async function callDeepSeek(
   const result = await callOpenAICompatible(
     "https://api.deepseek.com/v1/chat/completions",
     apiKey,
-    process.env["LLM_MODEL"] || "deepseek-chat",
+    resolveDeepseekModel(),
     [{ role: "user", content: buildPrompt(companyName, pageUrl, cleanHtml) }]
   );
 
@@ -150,7 +147,7 @@ async function callClaude(
   const client = new Anthropic({ apiKey });
 
   const response = await client.messages.create({
-    model: process.env["LLM_MODEL"] || "claude-sonnet-5-20251001",
+    model: resolveClaudeModel(),
     max_tokens: 4096,
     temperature: 0.1,
     messages: [
@@ -183,7 +180,7 @@ async function callOpenAICompatible(
   model: string,
   messages: Array<{ role: string; content: string }>
 ): Promise<LLMResponse | null> {
-  const res = await fetch(endpoint, {
+  const res = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -195,7 +192,7 @@ async function callOpenAICompatible(
       max_tokens: 4096,
       temperature: 0.1,
     }),
-  });
+  }, LLM_TIMEOUT_MS);
 
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -245,23 +242,14 @@ function cleanPageHtml(html: string): string {
 }
 
 function parseJSONResponse(text: string): LLMResponse | null {
-  try {
-    let t = text.trim();
-    // 剥掉 ```json ... ``` markdown 围栏（模型经常不听"不要代码块"）
-    const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (fence) t = fence[1].trim();
-    // 去掉首尾非 JSON 的杂文字
-    const jsonMatch = t.match(/\{[\s\S]*"jobs"[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[0]);
-    // 校验结构，避免截到残缺 JSON
-    if (parsed && typeof parsed === "object" && Array.isArray(parsed.jobs)) {
-      return parsed as LLMResponse;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  // 结构校验放在这里，顺便挡掉截断的残缺 JSON
+  return parseLlmJson<LLMResponse>(
+    text,
+    (v) =>
+      !!v &&
+      typeof v === "object" &&
+      Array.isArray((v as { jobs?: unknown }).jobs)
+  );
 }
 
 function parseAndMap(

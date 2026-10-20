@@ -12,6 +12,10 @@
  *   LLM_PROVIDER / LLM_MODEL / DEEPSEEK_API_KEY / ANTHROPIC_API_KEY / LLM_BASE_URL
  */
 import { prisma } from "@/lib/prisma";
+import { fetchWithTimeout } from "@/lib/http";
+
+/** 设置页"测试连接"不该让用户干等太久 */
+const TEST_TIMEOUT_MS = 15_000;
 
 export interface LLMConfig {
   baseUrl: string;
@@ -22,6 +26,33 @@ export interface LLMConfig {
 }
 
 export const DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
+
+/**
+ * 各 provider 的默认模型。
+ *
+ * 之前三个文件都硬编码了 "claude-sonnet-5-20251001"，这个 ID 并不存在
+ * （日期后缀是 Claude 3/4 时代的写法），走 Claude 分支会直接 404，
+ * 然后静默回退到关键词提取，看起来就像"模型不好用"。
+ */
+export const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
+export const DEFAULT_CLAUDE_MODEL = "claude-sonnet-5-5";
+
+/**
+ * 模型名解析：provider 专属变量 → 通用的 LLM_MODEL → 内置默认。
+ * 拆开是因为 DeepSeek 和 Claude 共用一个 LLM_MODEL 时，
+ * 给 DeepSeek 设的名字会被当成 Claude 的模型名发出去。
+ */
+export function resolveDeepseekModel(): string {
+  return (
+    process.env["DEEPSEEK_MODEL"] || process.env["LLM_MODEL"] || DEFAULT_DEEPSEEK_MODEL
+  );
+}
+
+export function resolveClaudeModel(): string {
+  return (
+    process.env["ANTHROPIC_MODEL"] || process.env["LLM_MODEL"] || DEFAULT_CLAUDE_MODEL
+  );
+}
 
 /** 检查 API Key 是否真的配置了（不是占位符） */
 export function hasRealKey(key: string | undefined): boolean {
@@ -75,9 +106,7 @@ export async function getLLMConfig(): Promise<LLMConfig> {
           ? "https://api.anthropic.com"
           : process.env["LLM_BASE_URL"] || DEFAULT_BASE_URL,
       apiKey: envKey as string,
-      model:
-        process.env["LLM_MODEL"] ||
-        (isClaude ? "claude-sonnet-5-20251001" : "deepseek-chat"),
+      model: isClaude ? resolveClaudeModel() : resolveDeepseekModel(),
       visual: false,
       source: "env",
     };
@@ -120,7 +149,7 @@ export async function testLLMConnection(cfg: {
   const baseUrl = cfg.baseUrl.trim().replace(/\/+$/, "");
   if (!baseUrl) return { ok: false, message: "请填写 Base URL" };
   try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
+    const res = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${cfg.apiKey.trim()}`,
@@ -131,7 +160,7 @@ export async function testLLMConnection(cfg: {
         messages: [{ role: "user", content: "回复 OK" }],
         max_tokens: 10,
       }),
-    });
+    }, TEST_TIMEOUT_MS);
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       return {

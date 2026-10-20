@@ -1,5 +1,8 @@
 import type { ScrapedJob, ScraperResult, ScraperSource } from "./types";
 
+/** 单个目标站的请求上限：挂住时不能让整轮爬取无限期卡住 */
+const SCRAPER_TIMEOUT_MS = 20_000;
+
 /**
  * 基础爬虫抽象类
  * 所有数据源爬虫都继承此类
@@ -51,6 +54,8 @@ export abstract class BaseScraper {
         ...options?.headers,
       },
       ...options,
+      // 调用方自带 signal 时不覆盖
+      signal: options?.signal ?? AbortSignal.timeout(SCRAPER_TIMEOUT_MS),
     });
 
     if (!response.ok) {

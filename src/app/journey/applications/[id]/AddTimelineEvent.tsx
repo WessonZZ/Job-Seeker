@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { format } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
 
 const EVENT_TYPE_OPTIONS = [
   { value: "submit", label: "投递简历" },
@@ -37,8 +38,10 @@ export default function AddTimelineEvent({
   applicationId,
 }: AddTimelineEventProps) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     eventType: "note",
     title: "",
@@ -59,6 +62,7 @@ export default function AddTimelineEvent({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setError("");
 
     try {
       const res = await fetch("/api/timeline", {
@@ -74,19 +78,24 @@ export default function AddTimelineEvent({
         }),
       });
 
-      if (res.ok) {
-        setFormData({
-          eventType: "note",
-          title: "备注",
-          description: "",
-          date: format.dateShort(new Date()),
-          time: format.clock(new Date()),
-        });
-        setOpen(false);
-        router.refresh();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "保存失败，请重试");
+        return;
       }
+
+      setFormData({
+        eventType: "note",
+        title: "备注",
+        description: "",
+        date: format.dateShort(new Date()),
+        time: format.clock(new Date()),
+      });
+      setOpen(false);
+      toast("事件已添加");
+      router.refresh();
     } catch {
-      // ignore
+      setError("网络错误，请重试");
     } finally {
       setSaving(false);
     }
@@ -95,7 +104,7 @@ export default function AddTimelineEvent({
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => { setError(""); setOpen(true); }}
         className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-[var(--border)] text-sm text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
       >
         <Plus className="w-4 h-4" />
@@ -181,6 +190,10 @@ export default function AddTimelineEvent({
         </div>
       </div>
 
+      {error && (
+        <p className="text-sm text-red-500" role="alert">{error}</p>
+      )}
+
       <div className="flex items-center gap-2">
         <button
           type="submit"
@@ -191,7 +204,7 @@ export default function AddTimelineEvent({
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => { setError(""); setOpen(false); }}
           className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm hover:bg-[var(--background)]"
         >
           取消

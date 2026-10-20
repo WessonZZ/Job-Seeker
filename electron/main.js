@@ -30,19 +30,30 @@ app.isQuitting = false; // Cmd+Q 退出时置 true（区分"关闭窗口"与"退
 
 function isServerUp() {
   return new Promise((resolve) => {
+    let settled = false;
+    const done = (v) => {
+      if (settled) return;
+      settled = true;
+      resolve(v);
+    };
     const req = http.get(APP_URL, (res) => {
       let body = "";
       res.on("data", (d) => {
         body += d;
-        if (body.length > 200000) req.destroy();
+        // 首页可能很大（含 RSC 数据，数百 KB）：一旦读到本应用标记就立即判定，
+        // 不再读完整个页面（否则大页面会因超时被误判为"服务未就绪"）
+        if (isOurApp(body)) {
+          req.destroy();
+          done(true);
+        }
       });
-      res.on("end", () => resolve(isOurApp(body)));
-      res.on("error", () => resolve(false));
+      res.on("end", () => done(isOurApp(body)));
+      res.on("error", () => done(false));
     });
-    req.on("error", () => resolve(false));
-    req.setTimeout(1200, () => {
+    req.on("error", () => done(false));
+    req.setTimeout(3000, () => {
       req.destroy();
-      resolve(false);
+      done(false);
     });
   });
 }

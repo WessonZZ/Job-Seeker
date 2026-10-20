@@ -92,8 +92,9 @@ export const STATUS_CONFIG: Record<
   interview_pending: { label: "待预约面试", color: "text-sky-500 bg-sky-100 dark:bg-sky-500/10", icon: "📅" },
   interview: { label: "面试中", color: "text-purple-500 bg-purple-100 dark:bg-purple-500/10", icon: "🤝" },
   offer: { label: "已 offer", color: "text-emerald-500 bg-emerald-100 dark:bg-emerald-500/10", icon: "🎉" },
-  rejected: { label: "已拒绝", color: "text-red-500 bg-red-100 dark:bg-red-500/10", icon: "🚫" },
-  rejected_by_company: { label: "被拒", color: "text-rose-500 bg-rose-100 dark:bg-rose-500/10", icon: "💔" },
+  // 两个"被拒"状态原本叫"已拒绝"/"被拒"，分不清谁拒谁，这里点明施动方
+  rejected: { label: "我放弃了", color: "text-red-500 bg-red-100 dark:bg-red-500/10", icon: "🚫" },
+  rejected_by_company: { label: "被公司拒绝", color: "text-rose-500 bg-rose-100 dark:bg-rose-500/10", icon: "💔" },
   ghosted: { label: "无回应", color: "text-gray-500 bg-gray-100 dark:bg-gray-500/10", icon: "👻" },
 };
 

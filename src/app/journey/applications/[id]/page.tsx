@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { format, hasClockTime } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, ClipboardList } from "lucide-react";
+import EmptyState from "@/components/ui/EmptyState";
 import AddTimelineEvent from "./AddTimelineEvent";
 import EditableHeader from "./EditableHeader";
 import EditableJD from "./EditableJD";
@@ -99,13 +100,12 @@ export default async function ApplicationDetailPage({
         </div>
 
         {application.timelineEvents.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">📋</div>
-            <p className="text-sm text-[var(--muted)] mb-1">暂无时间线事件</p>
-            <p className="text-xs text-[var(--muted)]">
-              记录投递后的每个关键节点：笔试、面试、Offer……
-            </p>
-          </div>
+          <EmptyState
+            className="py-12"
+            icon={<ClipboardList className="w-5 h-5 text-[var(--muted)]" />}
+            title="暂无时间线事件"
+            hint="记录投递后的每个关键节点：笔试、面试、Offer……"
+          />
         ) : (
           <div className="relative">
             {/* 时间线竖线 */}
@@ -158,11 +158,3 @@ export default async function ApplicationDetailPage({
     </div>
   );
 }
-
-/**
- * 简短日期格式化（时间线专用）
- */
-
-/**
- * 带时间的日期格式化
- */

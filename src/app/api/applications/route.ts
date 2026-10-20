@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  applicationCreateSchema,
+  applicationPatchSchema,
+  firstIssueMessage,
+  isKnownStatus,
+  parseDateInput,
+} from "@/lib/validation";
 
 // GET /api/applications
 export async function GET() {
@@ -8,7 +16,8 @@ export async function GET() {
       orderBy: { updatedAt: "desc" },
     });
     return NextResponse.json(applications);
-  } catch {
+  } catch (err) {
+    console.error("[applications GET]", err);
     return NextResponse.json({ error: "获取投递记录失败" }, { status: 500 });
   }
 }
@@ -16,11 +25,19 @@ export async function GET() {
 // POST /api/applications
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { companyName, position, jd, url, appliedDate, status, notes, priority, jobPostingId } = body;
+    const parsed = applicationCreateSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: firstIssueMessage(parsed.error) }, { status: 400 });
+    }
+    const { companyName, position, jd, url, appliedDate, status, notes, priority, jobPostingId } =
+      parsed.data;
 
-    if (!companyName || !position || !appliedDate) {
-      return NextResponse.json({ error: "公司名称、职位和投递日期为必填项" }, { status: 400 });
+    const applied = parseDateInput(appliedDate);
+    if (!applied) {
+      return NextResponse.json({ error: "投递日期格式无法识别" }, { status: 400 });
+    }
+    if (status && !isKnownStatus(status)) {
+      return NextResponse.json({ error: `未知的状态值：${status}` }, { status: 400 });
     }
 
     let user = await prisma.user.findFirst();
@@ -37,17 +54,30 @@ export async function POST(request: Request) {
 
     const application = await prisma.application.create({
       data: {
-        userId: user.id, companyName, position,
-        jd: resolvedJd ?? "", url: url ?? "",
-        appliedDate: new Date(appliedDate),
-        status: status ?? "applied", notes: notes ?? "", priority: priority ?? 0,
-        // 投递简历事件存本地午夜，避免仅日期事件在本地时区显示成 08:00
-        timelineEvents: { create: { eventType: "submit", title: "投递简历", date: new Date(`${appliedDate}T00:00`), isKey: true } },
+        userId: user.id,
+        companyName,
+        position,
+        jd: resolvedJd ?? "",
+        url: url ?? "",
+        appliedDate: applied,
+        status: status ?? "applied",
+        notes: notes ?? "",
+        priority: priority ?? 0,
+        // 投递事件与 appliedDate 用同一个日期对象，避免两者相差一个时区偏移
+        timelineEvents: {
+          create: {
+            eventType: "submit",
+            title: "投递简历",
+            date: applied,
+            isKey: true,
+          },
+        },
       },
     });
 
     return NextResponse.json(application, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[applications POST]", err);
     return NextResponse.json({ error: "创建投递记录失败" }, { status: 500 });
   }
 }
@@ -59,7 +89,8 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: "缺少 ID" }, { status: 400 });
     await prisma.application.delete({ where: { id } });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error("[applications DELETE]", err);
     return NextResponse.json({ error: "删除失败" }, { status: 500 });
   }
 }
@@ -67,13 +98,40 @@ export async function DELETE(request: Request) {
 // PATCH /api/applications — 更新单个字段（如 jd）
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json();
-    const { id, ...fields } = body;
-    if (!id) return NextResponse.json({ error: "缺少 ID" }, { status: 400 });
+    const parsed = applicationPatchSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: firstIssueMessage(parsed.error) }, { status: 400 });
+    }
 
-    const app = await prisma.application.update({ where: { id }, data: fields });
+    // 白名单之外的字段（userId / createdAt / id 本身…）在这里已经被 schema 丢掉了
+    const { id, companyName, position, appliedDate, status, jd, url, notes, priority } =
+      parsed.data;
+
+    if (status && !isKnownStatus(status)) {
+      return NextResponse.json({ error: `未知的状态值：${status}` }, { status: 400 });
+    }
+
+    // 逐字段显式赋值：schema 是白名单，这里也是，两道都不放行未声明的字段
+    const data: Prisma.ApplicationUpdateInput = {};
+    if (companyName !== undefined) data.companyName = companyName;
+    if (position !== undefined) data.position = position;
+    if (status !== undefined) data.status = status;
+    if (jd !== undefined) data.jd = jd;
+    if (url !== undefined) data.url = url;
+    if (notes !== undefined) data.notes = notes;
+    if (priority !== undefined) data.priority = priority;
+    if (appliedDate !== undefined) {
+      const applied = parseDateInput(appliedDate);
+      if (!applied) {
+        return NextResponse.json({ error: "投递日期格式无法识别" }, { status: 400 });
+      }
+      data.appliedDate = applied;
+    }
+
+    const app = await prisma.application.update({ where: { id }, data });
     return NextResponse.json(app);
-  } catch {
+  } catch (err) {
+    console.error("[applications PATCH]", err);
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 }

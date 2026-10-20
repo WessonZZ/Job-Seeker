@@ -38,7 +38,10 @@ export default async function AnalyticsPage() {
   const oa = statusMap["oa"] ?? 0;
   const interview = statusMap["interview"] ?? 0;
   const offer = statusMap["offer"] ?? 0;
-  const rejected = statusMap["rejected"] ?? 0;
+  // 两个"被拒"状态都要算：邮件同步写入的是 rejected_by_company，
+  // 只读 rejected 的话这一行永远是 0（库里 26 条被拒全是 rejected_by_company）
+  const rejected =
+    (statusMap["rejected"] ?? 0) + (statusMap["rejected_by_company"] ?? 0);
 
   const oaRate = totalApplications > 0 ? (oa / totalApplications) * 100 : 0;
   const interviewRate =

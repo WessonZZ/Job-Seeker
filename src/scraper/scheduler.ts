@@ -1,11 +1,17 @@
+/**
+ * 爬虫调度器（当前无调用点 —— 保留备用）
+ *
+ * ⚠️ startScheduler / stopScheduler / getSchedulerStatus 在整个项目里
+ * 没有任何地方 import，所以"每天早上 8 点自动爬取"目前并不存在，
+ * 设置页也没有对应开关。
+ *
+ * 另外注意：orchestrator 的 SCRAPERS 数组是空的（见那边注释），
+ * 即使接上调度器也爬不到任何东西。要启用请先注册爬虫源。
+ */
+
 import cron from "node-cron";
 import type { ScheduledTask } from "node-cron";
 import { runAllScrapers } from "./orchestrator";
-
-/**
- * 爬虫调度器
- * 支持定时任务和手动触发
- */
 
 let scheduledTask: ScheduledTask | null = null;
 let lastRunTime: Date | null = null;

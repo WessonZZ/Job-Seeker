@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 
 interface DeleteApplicationButtonProps {
   applicationId: string;
@@ -16,6 +18,7 @@ export default function DeleteApplicationButton({
   companyName,
 }: DeleteApplicationButtonProps) {
   const router = useRouter();
+  const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +38,7 @@ export default function DeleteApplicationButton({
         return;
       }
       setConfirming(false);
+      toast(`已删除「${companyName} · ${position}」`);
       router.refresh();
     } catch {
       setError("网络错误，请重试");
@@ -54,45 +58,24 @@ export default function DeleteApplicationButton({
         <Trash2 className="w-4 h-4" />
       </button>
 
-      {confirming && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          onClick={() => !deleting && setConfirming(false)}
-        >
-          <div
-            className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 w-full max-w-sm shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-semibold mb-1">删除投递记录？</h3>
-            <p className="text-sm text-[var(--muted)] mb-4">
-              将删除
-              <span className="font-medium text-[var(--foreground)]"> {position} </span>
-              于 {companyName} 的记录及其全部时间线，此操作不可恢复。
-            </p>
-            {error && (
-              <p className="mb-3 text-sm text-red-500">{error}</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={deleting}
-                className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm hover:bg-[var(--sidebar-hover)] transition-colors disabled:opacity-50"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {deleting ? "删除中..." : "确认删除"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirming}
+        title="删除投递记录？"
+        description={
+          <>
+            将删除
+            <span className="font-medium text-[var(--foreground)]"> {position} </span>
+            于 {companyName} 的记录及其全部时间线，此操作不可恢复。
+          </>
+        }
+        confirmLabel="确认删除"
+        busyLabel="删除中..."
+        busy={deleting}
+        error={error}
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => { setError(""); setConfirming(false); }}
+      />
     </>
   );
 }

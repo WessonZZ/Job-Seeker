@@ -30,6 +30,46 @@ export const STAGE_WEIGHT: Record<StageKey, number> = {
   offer: 4,
 };
 
+/**
+ * 时间线事件类型 → 投递状态（单一事实来源）
+ *
+ * 邮件同步、时间线 API、前端三处都依赖这个映射。以前它们各写一份，
+ * 结果 email-processor 把 "rejection" 原样写进了 status，而 STATUS_CONFIG
+ * 里只有 "rejected_by_company" —— 状态徽章会整个消失。
+ *
+ * 未列出的类型（followup / note）不改变投递状态。
+ */
+export const EVENT_TO_STATUS: Record<string, string> = {
+  submit: "applied",
+  oa: "oa",
+  test: "oa",
+  interview_pending: "interview_pending",
+  interview: "interview",
+  offer: "offer",
+  rejection: "rejected_by_company",
+};
+
+/** 事件类型对应的状态；不改变状态的类型返回 null */
+export function statusFromEventType(eventType: string): string | null {
+  return EVENT_TO_STATUS[eventType] ?? null;
+}
+
+/**
+ * 由时间线事件推导当前状态：取日期最新的、且能映射到状态的那个事件。
+ * 无有效事件时回退 "applied"。
+ */
+export function deriveStatusFromEvents(
+  events: Array<{ eventType: string; date: Date }>
+): string {
+  if (events.length === 0) return "applied";
+  const sorted = [...events].sort((a, b) => b.date.getTime() - a.date.getTime());
+  for (const e of sorted) {
+    const status = EVENT_TO_STATUS[e.eventType];
+    if (status) return status;
+  }
+  return "applied";
+}
+
 /** 时间线事件类型 → 表示到达的阶段 */
 const EVENT_TO_STAGE: Record<string, StageKey> = {
   submit: "applied",

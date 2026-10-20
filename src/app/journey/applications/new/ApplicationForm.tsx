@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
 interface ApplicationFormProps {
   prefill: {
@@ -53,6 +54,7 @@ function loadDraft(): FormData | null {
 
 export default function ApplicationForm({ prefill }: ApplicationFormProps) {
   const router = useRouter();
+  const toast = useToast();
   // 一次性惰性初始化：优先恢复草稿，并记录是否来自草稿
   const [initial] = useState(() => {
     const draft = loadDraft();
@@ -121,6 +123,7 @@ export default function ApplicationForm({ prefill }: ApplicationFormProps) {
       }
 
       clearDraft();
+      toast("投递记录已保存");
       router.push("/journey/applications");
       router.refresh();
     } catch {
@@ -242,8 +245,8 @@ export default function ApplicationForm({ prefill }: ApplicationFormProps) {
             <option value="interview_pending">待预约面试</option>
             <option value="interview">面试中</option>
             <option value="offer">已 Offer</option>
-            <option value="rejected">已拒绝</option>
-            <option value="rejected_by_company">被拒</option>
+            <option value="rejected">我放弃了</option>
+            <option value="rejected_by_company">被公司拒绝</option>
             <option value="ghosted">无回应</option>
           </select>
         </div>

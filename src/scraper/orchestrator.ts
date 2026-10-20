@@ -5,9 +5,16 @@ import type { ScrapeRunReport, ScraperResult, ScrapedJob } from "./types";
 // 所有已注册的爬虫源
 // 注意：大厂招聘站 (字节/腾讯/阿里等) 使用 JS 动态加载，无法自动爬取
 // 请使用搜索页的「一键导入」功能手动添加具体公司的招聘官网网址
+//
+// ⚠️ 这个数组是空的，而且没有任何地方往里面 push。
+// src/scraper/sources/ 下的 ByteDanceScraper / AlibabaScraper / TencentScraper
+// 三个类从未被 import，所以 /api/scraper 的"开始爬取"永远返回 0 个岗位。
+// 真正能用的导入路径是搜索页的「一键导入」（走 /api/scraper/single）。
 const SCRAPERS: BaseScraper[] = [];
 
 // 运行历史的环状缓冲区（内存，最多存 10 条）
+// 注意：只在内存里，重启应用后历史全部丢失。因为 SCRAPERS 为空，
+// 现在也产生不了有意义的记录，所以暂时没有落库。
 const runHistory: ScrapeRunReport[] = [];
 
 export function getRunHistory(): ScrapeRunReport[] {

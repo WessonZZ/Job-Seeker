@@ -7,7 +7,13 @@
  * 配置来自数据库（设置页）或环境变量回退，见 llm-config.ts
  */
 import { prisma } from "@/lib/prisma";
-import { getLLMConfig, type LLMConfig } from "@/lib/llm-config";
+import {
+  getLLMConfig,
+  resolveClaudeModel,
+  resolveDeepseekModel,
+  type LLMConfig,
+} from "@/lib/llm-config";
+import { fetchWithTimeout, LLM_TIMEOUT_MS } from "@/lib/http";
 import type { ExtractedResume } from "@/lib/resume-extract";
 
 interface ParsedResume {
@@ -119,7 +125,7 @@ async function callOpenAICompatible(
   maxTokens = 4096
 ): Promise<string | null> {
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const res = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -131,7 +137,7 @@ async function callOpenAICompatible(
       max_tokens: maxTokens,
       temperature: 0.1,
     }),
-  });
+  }, LLM_TIMEOUT_MS);
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
   const data = await res.json();
   return data?.choices?.[0]?.message?.content ?? null;
@@ -167,15 +173,15 @@ async function parseWithTextLegacy(text: string): Promise<ParsedResume | null> {
   const anthropicKey = process.env["ANTHROPIC_API_KEY"];
 
   if (deepseekKey) {
-    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    const res = await fetchWithTimeout("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${deepseekKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env["LLM_MODEL"] || "deepseek-chat",
+        model: resolveDeepseekModel(),
         messages: [{ role: "user", content: buildResumePrompt(text) }],
         max_tokens: 4096, temperature: 0.1,
       }),
-    });
+    }, LLM_TIMEOUT_MS);
     const data = await res.json();
     return parseJSON(data?.choices?.[0]?.message?.content ?? "");
   }
@@ -184,7 +190,7 @@ async function parseWithTextLegacy(text: string): Promise<ParsedResume | null> {
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const client = new Anthropic({ apiKey: anthropicKey });
     const response = await client.messages.create({
-      model: process.env["LLM_MODEL"] || "claude-sonnet-5-20251001",
+      model: resolveClaudeModel(),
       max_tokens: 4096, temperature: 0.1,
       messages: [{ role: "user", content: buildResumePrompt(text) }],
     });

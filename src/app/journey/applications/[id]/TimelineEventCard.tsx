@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, X, Check, Calendar as CalIcon } from "lucide-react";
 import { format, hasClockTime, EVENT_CONFIG } from "@/lib/utils";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 
 const EVENT_TYPE_OPTIONS = [
   { value: "submit", label: "投递简历" },
@@ -37,24 +39,35 @@ interface TimelineEventCardProps {
 
 export default function TimelineEventCard({ event }: TimelineEventCardProps) {
   const router = useRouter();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
   const initialEventDate = new Date(event.date);
-  const [formData, setFormData] = useState({
+  const initialFormData = () => ({
     eventType: event.eventType,
     title: event.title,
     description: event.description || "",
     date: format.dateShort(initialEventDate),
     time: hasClockTime(initialEventDate) ? format.clock(initialEventDate) : format.clock(new Date()),
   });
+  const [formData, setFormData] = useState(initialFormData);
 
   const eventConfig = EVENT_CONFIG[event.eventType as keyof typeof EVENT_CONFIG];
 
+  const closeEditor = () => {
+    setFormData(initialFormData()); // 丢弃未保存的改动，避免下次进来看到旧草稿
+    setError("");
+    setEditing(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
+    setError("");
     try {
-      await fetch("/api/timeline", {
+      const res = await fetch("/api/timeline", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,20 +78,41 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
           date: formData.time ? `${formData.date}T${formData.time}` : `${formData.date}T00:00`,
         }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "保存失败，请重试");
+        return; // 保留编辑态，让用户能改完再存
+      }
+
       setEditing(false);
+      toast("事件已更新");
       router.refresh();
-    } catch { /* ignore */ }
-    setSaving(false);
+    } catch {
+      setError("网络错误，请重试");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
-    if (!confirm("确定删除此事件？")) return;
     setDeleting(true);
+    setError("");
     try {
-      await fetch(`/api/timeline?id=${event.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/timeline?id=${event.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "删除失败，请重试");
+        return;
+      }
+      setConfirming(false);
+      toast("事件已删除");
       router.refresh();
-    } catch { /* ignore */ }
-    setDeleting(false);
+    } catch {
+      setError("网络错误，请重试");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // 编辑模式
@@ -117,12 +151,16 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
               className="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] text-xs resize-none" />
           </div>
         </div>
+        {error && (
+          <p className="text-xs text-red-500" role="alert">{error}</p>
+        )}
+
         <div className="flex gap-1">
           <button onClick={handleSave} disabled={saving}
             className="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white text-xs font-medium disabled:opacity-50">
             <Check className="w-3 h-3 inline mr-0.5" />{saving ? "保存中" : "保存"}
           </button>
-          <button onClick={() => setEditing(false)}
+          <button onClick={closeEditor}
             className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs">
             <X className="w-3 h-3 inline mr-0.5" />取消
           </button>
@@ -146,18 +184,33 @@ export default function TimelineEventCard({ event }: TimelineEventCardProps) {
           {event.isKey && <span className="text-[10px] text-[var(--primary)] font-medium">关键节点</span>}
         </div>
 
-        {/* 编辑/删除按钮（悬浮显示） */}
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => setEditing(true)}
+        {/* 编辑/删除按钮：默认隐藏，悬浮或键盘聚焦时显示 */}
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button onClick={() => { setError(""); setEditing(true); }}
+            aria-label="编辑事件"
             className="p-1 rounded hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors" title="编辑">
             <Pencil className="w-3.5 h-3.5" />
           </button>
-          <button onClick={handleDelete} disabled={deleting}
+          <button onClick={() => { setError(""); setConfirming(true); }} disabled={deleting}
+            aria-label="删除事件"
             className="p-1 rounded hover:bg-red-100 text-[var(--muted)] hover:text-red-500 transition-colors" title="删除">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirming}
+        title="删除此事件？"
+        description={`将删除「${event.title}」，此操作不可恢复。`}
+        confirmLabel="确认删除"
+        busyLabel="删除中..."
+        busy={deleting}
+        error={error}
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => { setError(""); setConfirming(false); }}
+      />
 
       <h3 className="font-semibold text-sm">{event.title}</h3>
 

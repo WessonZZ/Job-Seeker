@@ -7,7 +7,10 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { getLLMConfig, type LLMConfig } from "@/lib/llm-config";
+import { getLLMConfig, resolveClaudeModel, resolveDeepseekModel, type LLMConfig } from "@/lib/llm-config";
+import { statusFromEventType } from "@/lib/application-stages";
+import { fetchWithTimeout, LLM_TIMEOUT_MS } from "@/lib/http";
+import { parseLlmJson } from "@/lib/llm-json";
 import type { EmailMessage } from "./email-service";
 
 interface ClassifiedEmail {
@@ -98,11 +101,12 @@ export async function processEmails(
       if (exists) continue;
 
       // 创建时间线事件
+      const createdEventType = result.eventType ?? "note";
       createdIds.push(matchedApp.id);
       await prisma.timelineEvent.create({
         data: {
           applicationId: matchedApp.id,
-          eventType: result.eventType ?? "note",
+          eventType: createdEventType,
           title: eventTitle,
           description: result.details ?? email.text.slice(0, 500),
           date: eventDate,
@@ -110,11 +114,20 @@ export async function processEmails(
         },
       });
 
-      // 更新投递状态
-      if (result.eventType && ["oa", "interview_pending", "interview", "offer", "rejection"].includes(result.eventType)) {
+      // 回写快照，否则同一批次里后续内容相同的邮件查不到这条新事件，会重复建
+      matchedApp.timelineEvents.push({
+        eventType: createdEventType,
+        date: eventDate,
+        title: eventTitle,
+      });
+
+      // 更新投递状态。注意走共享映射：事件类型 "rejection" 对应的状态是
+      // "rejected_by_company"，直接写 eventType 会存进一个 UI 不认识的值。
+      const nextStatus = statusFromEventType(createdEventType);
+      if (nextStatus) {
         await prisma.application.update({
           where: { id: matchedApp.id },
-          data: { status: result.eventType },
+          data: { status: nextStatus },
         });
       }
 
@@ -136,13 +149,25 @@ async function classifyEmail(email: EmailMessage): Promise<ClassifiedEmail> {
   const anthropicKey = process.env["ANTHROPIC_API_KEY"];
 
   // 关键词快速预筛（提高效率）
+  //
+  // 这道预筛是"不命中就不问 LLM、直接判为不相关"，所以漏词 = 邮件被静默丢弃。
+  // 之前只覆盖了面试/笔试/投递这类措辞，真实拒信里最常见的
+  // 「感谢您对本公司的关注…您的申请未能通过筛选」一个词都不含，
+  // 于是最该被抓到的拒信反而最先被丢掉。
   const keywords = [
-    "面试", "笔试", "Offer", "录用", "入职", "招聘",
-    "简历", "投递", "校招", "实习生", "候选人",
-    "interview", "recruit", "candidate", "offer",
-    "invitation", "assessment", "hiring",
+    // 流程类
+    "面试", "笔试", "测评", "录用", "入职", "offer",
+    // 投递/申请类
+    "投递", "申请", "应聘", "求职", "简历", "候选人",
+    // 招聘类
+    "招聘", "校招", "秋招", "春招", "实习生", "岗位", "职位",
+    // 拒信类
+    "遗憾", "未通过", "不合适", "拒绝",
+    // 英文
+    "interview", "recruit", "candidate", "invitation", "assessment", "hiring",
   ];
-  const textToCheck = `${email.subject} ${email.from} ${email.text}`;
+  // 统一转小写，否则 "Interview" 这种首字母大写的写法会漏掉
+  const textToCheck = `${email.subject} ${email.from} ${email.text}`.toLowerCase();
   const hasKeyword = keywords.some((kw) => textToCheck.includes(kw));
   if (!hasKeyword) {
     return { isJobRelated: false, confidence: 0 };
@@ -202,7 +227,7 @@ async function classifyEmail(email: EmailMessage): Promise<ClassifiedEmail> {
 /** 用数据库配置（OpenAI 兼容）调用 LLM 分类邮件 */
 async function callConfiguredLLM(prompt: string, cfg: LLMConfig): Promise<ClassifiedEmail> {
   const baseUrl = cfg.baseUrl.replace(/\/+$/, "");
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const res = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${cfg.apiKey}`,
@@ -214,7 +239,7 @@ async function callConfiguredLLM(prompt: string, cfg: LLMConfig): Promise<Classi
       max_tokens: 1024,
       temperature: 0.1,
     }),
-  });
+  }, LLM_TIMEOUT_MS);
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
   const data = await res.json();
   return parseResult(data?.choices?.[0]?.message?.content ?? "");
@@ -229,7 +254,7 @@ async function callLLM(
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const client = new Anthropic({ apiKey });
     const res = await client.messages.create({
-      model: process.env["LLM_MODEL"] || "claude-sonnet-5-20251001",
+      model: resolveClaudeModel(),
       max_tokens: 1024,
       temperature: 0.1,
       messages: [{ role: "user", content: prompt }],
@@ -239,46 +264,41 @@ async function callLLM(
   }
 
   // DeepSeek (OpenAI 兼容)
-  const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+  const res = await fetchWithTimeout("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env["LLM_MODEL"] || "deepseek-chat",
+      model: resolveDeepseekModel(),
       messages: [{ role: "user", content: prompt }],
       max_tokens: 1024,
       temperature: 0.1,
     }),
-  });
+  }, LLM_TIMEOUT_MS);
   const data = await res.json();
   const text = data?.choices?.[0]?.message?.content ?? "";
   return parseResult(text);
 }
 
 function parseResult(text: string): ClassifiedEmail {
-  try {
-    let t = text.trim();
-    // 剥掉 ```json ... ``` markdown 围栏
-    const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (fence) t = fence[1].trim();
-    const jsonMatch = t.match(/\{[^{}]*"isJobRelated"[^{}]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed && typeof parsed === "object") return parsed as ClassifiedEmail;
-    }
-    return { isJobRelated: false, confidence: 0 };
-  } catch {
-    return { isJobRelated: false, confidence: 0 };
-  }
+  const parsed = parseLlmJson<ClassifiedEmail>(
+    text,
+    (v) =>
+      !!v &&
+      typeof v === "object" &&
+      typeof (v as { isJobRelated?: unknown }).isJobRelated === "boolean"
+  );
+  return parsed ?? { isJobRelated: false, confidence: 0 };
 }
 
 /**
  * 关键词回退策略（无 LLM 时）
  */
 function keywordFallback(email: EmailMessage): ClassifiedEmail {
-  const t = `${email.subject} ${email.text}`;
+  // 同样转小写，否则 "Offer" 之外的写法（offer / OFFER）匹配不到
+  const t = `${email.subject} ${email.text}`.toLowerCase();
 
   if (t.includes("预约面试") || t.includes("邀请您面试") || t.includes("邀约面试") || (t.includes("面试") && (t.includes("预约") || t.includes("选择时间") || t.includes("确认时间")))) {
     return {
@@ -304,7 +324,7 @@ function keywordFallback(email: EmailMessage): ClassifiedEmail {
       confidence: 0.5,
     };
   }
-  if (t.includes("Offer") || t.includes("录用") || t.includes("入职")) {
+  if (t.includes("offer") || t.includes("录用") || t.includes("入职")) {
     return {
       isJobRelated: true,
       eventType: "offer",
@@ -312,7 +332,13 @@ function keywordFallback(email: EmailMessage): ClassifiedEmail {
       confidence: 0.5,
     };
   }
-  if (t.includes("感谢") && (t.includes("投递") || t.includes("申请"))) {
+  // 拒信：既认"感谢+投递/申请"这种委婉说法，也认直白的措辞
+  if (
+    (t.includes("感谢") && (t.includes("投递") || t.includes("申请"))) ||
+    t.includes("遗憾") ||
+    t.includes("未通过") ||
+    t.includes("不合适")
+  ) {
     return {
       isJobRelated: true,
       eventType: "rejection",
